@@ -1,0 +1,39 @@
+{
+  "tabs": {
+    "home": "Home",
+    "discover": "Discover",
+    "kitchen": "My Kitchen",
+    "recipes": "My Recipes",
+    "profile": "Profile"
+  },
+  "home": {
+    "title": "Home",
+    "body": "Your kitchen overview will appear here."
+  },
+  "discover": {
+    "title": "Discover",
+    "body": "Recipes from different countries will appear here."
+  },
+  "kitchen": {
+    "title": "My Kitchen",
+    "body": "Meals based on the ingredients you have will appear here."
+  },
+  "recipes": {
+    "title": "My Recipes",
+    "body": "Recipes you create, private or shared, will appear here."
+  },
+  "profile": {
+    "title": "Profile",
+    "body": "Language and account settings will appear here.",
+    "language": "Language",
+    "api": "API address: {{url}}"
+  },
+  "language": {
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "notFound": {
+    "title": "This screen does not exist.",
+    "action": "Go to home"
+  }
+}

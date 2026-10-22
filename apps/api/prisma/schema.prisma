@@ -1,0 +1,12 @@
+// Milestone 1 configures the PostgreSQL connection only.
+// Application tables are added in later milestones.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
