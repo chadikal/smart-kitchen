@@ -113,10 +113,14 @@ Shared TypeScript strictness lives in `tsconfig.base.json`. The mobile app exten
 
 ## Versions
 
-- Expo SDK 57, React Native 0.86, React 19.2
+- Expo SDK 58, React Native 0.88, React 19.3
 - Expo Router and React Native Paper
 - i18next, react-i18next, and expo-localization
 - NestJS 12 with Jest
 - Prisma ORM 7 and PostgreSQL
 
 Prisma ORM 8 was still a release candidate when this foundation was created, so the API stays on Prisma 7. The NestJS 12 ESM starter uses Vitest; this API uses the CommonJS starter so the tests run on Jest.
+
+## Known mobile UI issue
+
+Phone testing confirmed the app opens and language switching works on SDK 58. The Arabic language selector has incorrect borders and spacing; its visual fix is deferred to the UI redesign.
