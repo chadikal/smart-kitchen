@@ -1,6 +1,6 @@
 # Smart Kitchen
 
-Mobile-first cooking and baking app with an English and Arabic interface, and a small NestJS API. This repository currently contains the Milestone 1 foundation: navigation, localization, a health check, and the PostgreSQL connection setup. Authentication, recipes, and database tables are not implemented yet.
+Mobile-first cooking and baking app with an English and Arabic interface, and a small NestJS API. Milestone 1 has navigation, localization, and a health check. Milestone 2 adds the Prisma recipe catalog. Public recipe browsing and detail endpoints are available. Authentication and recipe editing are not implemented yet.
 
 ## Requirements
 
@@ -38,7 +38,17 @@ Edit `apps\api\.env` and replace the database user and password. The example URL
 postgresql://postgres:postgres@localhost:5432/smart_kitchen?schema=public
 ```
 
-Create the empty database in PostgreSQL before a later milestone adds tables. No migration is included yet, and the schema intentionally has no models.
+The catalog migrations are `apps/api/prisma/migrations/20261022180000_init_recipe_catalog` and `apps/api/prisma/migrations/20261024153000_seed_provenance`. They have been applied to the disposable `smart_kitchen_migration_test` database, not to `smart_kitchen`. Relationships, access, measurement units, translation completeness, fallback, and the development seed are described in `apps/api/prisma/DATA_MODEL.md`.
+
+Seed the test database explicitly from `apps/api`:
+
+```powershell
+npm run prisma:seed
+```
+
+That command does not run on startup or during migration. It uses `MIGRATION_TEST_DATABASE_URL` only when that URL is a local loopback host, port 5432, database `smart_kitchen_migration_test`, and `schema=public` with no other connection options. It updates rows it has already marked in `seed_provenance`. Unmarked rows are left unchanged. It will not write to `smart_kitchen`.
+
+`npm run prisma:reconcile-seed` compares the current sample catalog with rows already stored in the test database and prints mismatches. It does not write. `npm run prisma:reconcile-seed -- --apply` records provenance for an exact match and leaves every stored field unchanged.
 
 `apps\mobile\.env` sets `EXPO_PUBLIC_API_URL`. `localhost` works in a browser on the same computer. A physical phone needs your computer's LAN address, for example `http://192.168.1.20:3000`.
 
@@ -57,6 +67,8 @@ Invoke-RestMethod http://localhost:3000/health
 ```
 
 The response is `{ "status": "ok" }`. Prisma Client is configured, and it connects on the first query. Starting the API and calling `/health` does not require PostgreSQL to be running.
+
+`GET /recipes` and `GET /recipes/:slug` browse published public recipes. Filters, language fallback, and decimal quantities are documented in [apps/api/README.md](apps/api/README.md).
 
 ## Run the mobile app
 

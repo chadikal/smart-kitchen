@@ -1,5 +1,5 @@
-// Milestone 1 configures the PostgreSQL connection only.
-// Application tables are added in later milestones.
+// Milestone 2 catalog. The public recipe API requires both PUBLISHED and PUBLIC.
+// The database still stores all four combinations.
 
 generator client {
   provider     = "prisma-client"
@@ -9,4 +9,331 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Language {
+  EN
+  AR
+
+  @@map("language")
+}
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+
+  @@map("publication_status")
+}
+
+enum Visibility {
+  PRIVATE
+  PUBLIC
+
+  @@map("visibility")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+
+  @@map("difficulty")
+}
+
+enum MeasuredUnit {
+  MILLIGRAM
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  TEASPOON
+  TABLESPOON
+  CUP
+  PIECE
+
+  @@map("measured_unit")
+}
+
+enum QualitativeAmount {
+  TO_TASTE
+
+  @@map("qualitative_amount")
+}
+
+/// Account that can own recipes. Authentication is intentionally not modeled.
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  recipes   Recipe[]
+
+  @@map("users")
+}
+
+model Country {
+  id               String               @id @default(uuid()) @db.Uuid
+  slug             String               @unique
+  code             String?              @unique @db.Char(2)
+  originalLanguage Language             @map("original_language")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  translations     CountryTranslation[]
+  recipes          RecipeCountry[]
+
+  @@index([originalLanguage])
+  @@map("countries")
+}
+
+model CountryTranslation {
+  id        String   @id @default(uuid()) @db.Uuid
+  countryId String   @map("country_id") @db.Uuid
+  language  Language
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@unique([countryId, language])
+  @@index([language])
+  @@map("country_translations")
+}
+
+model Cuisine {
+  id               String               @id @default(uuid()) @db.Uuid
+  slug             String               @unique
+  originalLanguage Language             @map("original_language")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  translations     CuisineTranslation[]
+  recipes          RecipeCuisine[]
+
+  @@index([originalLanguage])
+  @@map("cuisines")
+}
+
+model CuisineTranslation {
+  id        String   @id @default(uuid()) @db.Uuid
+  cuisineId String   @map("cuisine_id") @db.Uuid
+  language  Language
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  cuisine   Cuisine  @relation(fields: [cuisineId], references: [id], onDelete: Cascade)
+
+  @@unique([cuisineId, language])
+  @@index([language])
+  @@map("cuisine_translations")
+}
+
+model DietaryTag {
+  id               String                  @id @default(uuid()) @db.Uuid
+  slug             String                  @unique
+  originalLanguage Language                @map("original_language")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+  translations     DietaryTagTranslation[]
+  recipes          RecipeDietaryTag[]
+
+  @@index([originalLanguage])
+  @@map("dietary_tags")
+}
+
+model DietaryTagTranslation {
+  id           String     @id @default(uuid()) @db.Uuid
+  dietaryTagId String     @map("dietary_tag_id") @db.Uuid
+  language     Language
+  name         String
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  dietaryTag   DietaryTag @relation(fields: [dietaryTagId], references: [id], onDelete: Cascade)
+
+  @@unique([dietaryTagId, language])
+  @@index([language])
+  @@map("dietary_tag_translations")
+}
+
+model Ingredient {
+  id               String                  @id @default(uuid()) @db.Uuid
+  slug             String                  @unique
+  originalLanguage Language                @map("original_language")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+  translations     IngredientTranslation[]
+  recipeLines      RecipeIngredient[]
+
+  @@index([originalLanguage])
+  @@map("ingredients")
+}
+
+model IngredientTranslation {
+  id           String     @id @default(uuid()) @db.Uuid
+  ingredientId String     @map("ingredient_id") @db.Uuid
+  language     Language
+  name         String
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([ingredientId, language])
+  @@index([language, name])
+  @@map("ingredient_translations")
+}
+
+model Recipe {
+  id                String              @id @default(uuid()) @db.Uuid
+  slug              String              @unique
+  ownerId           String?             @map("owner_id") @db.Uuid
+  originalLanguage  Language            @map("original_language")
+  publicationStatus PublicationStatus   @default(DRAFT) @map("publication_status")
+  visibility        Visibility          @default(PRIVATE)
+  prepTimeMinutes   Int                 @default(0) @map("prep_time_minutes")
+  cookTimeMinutes   Int                 @default(0) @map("cook_time_minutes")
+  servings          Int                 @default(1)
+  difficulty        Difficulty
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  owner             User?               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  translations      RecipeTranslation[]
+  steps             RecipeStep[]
+  ingredients       RecipeIngredient[]
+  countries         RecipeCountry[]
+  cuisines          RecipeCuisine[]
+  dietaryTags       RecipeDietaryTag[]
+
+  @@index([ownerId])
+  @@index([publicationStatus, visibility])
+  @@index([originalLanguage])
+  @@map("recipes")
+}
+
+model RecipeTranslation {
+  id              String                        @id @default(uuid()) @db.Uuid
+  recipeId        String                        @map("recipe_id") @db.Uuid
+  language        Language
+  title           String
+  description     String                        @db.Text
+  createdAt       DateTime                      @default(now()) @map("created_at")
+  updatedAt       DateTime                      @updatedAt @map("updated_at")
+  recipe          Recipe                        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  steps           RecipeStepTranslation[]
+  ingredientNotes RecipeIngredientTranslation[]
+
+  @@unique([recipeId, language])
+  @@unique([id, recipeId])
+  @@index([language])
+  @@map("recipe_translations")
+}
+
+model RecipeStep {
+  id           String                  @id @default(uuid()) @db.Uuid
+  recipeId     String                  @map("recipe_id") @db.Uuid
+  position     Int
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  recipe       Recipe                  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  translations RecipeStepTranslation[]
+
+  @@unique([recipeId, position])
+  @@unique([id, recipeId])
+  @@map("recipe_steps")
+}
+
+model RecipeStepTranslation {
+  id                  String            @id @default(uuid()) @db.Uuid
+  recipeId            String            @map("recipe_id") @db.Uuid
+  stepId              String            @map("step_id") @db.Uuid
+  recipeTranslationId String            @map("recipe_translation_id") @db.Uuid
+  instruction         String            @db.Text
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  step                RecipeStep        @relation(fields: [stepId, recipeId], references: [id, recipeId], onDelete: Cascade)
+  recipeTranslation   RecipeTranslation @relation(fields: [recipeTranslationId, recipeId], references: [id, recipeId], onDelete: Cascade)
+
+  @@unique([stepId, recipeTranslationId])
+  @@index([recipeTranslationId])
+  @@map("recipe_step_translations")
+}
+
+model RecipeIngredient {
+  id                String                        @id @default(uuid()) @db.Uuid
+  recipeId          String                        @map("recipe_id") @db.Uuid
+  ingredientId      String                        @map("ingredient_id") @db.Uuid
+  position          Int
+  quantity          Decimal?                      @db.Decimal(12, 3)
+  unit              MeasuredUnit?
+  qualitativeAmount QualitativeAmount?            @map("qualitative_amount")
+  isOptional        Boolean                       @default(false) @map("is_optional")
+  createdAt         DateTime                      @default(now()) @map("created_at")
+  updatedAt         DateTime                      @updatedAt @map("updated_at")
+  recipe            Recipe                        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient        Ingredient                    @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  notes             RecipeIngredientTranslation[]
+
+  @@unique([recipeId, position])
+  @@unique([id, recipeId])
+  @@index([ingredientId])
+  @@map("recipe_ingredients")
+}
+
+model RecipeIngredientTranslation {
+  id                  String            @id @default(uuid()) @db.Uuid
+  recipeId            String            @map("recipe_id") @db.Uuid
+  recipeIngredientId  String            @map("recipe_ingredient_id") @db.Uuid
+  recipeTranslationId String            @map("recipe_translation_id") @db.Uuid
+  note                String
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  recipeIngredient    RecipeIngredient  @relation(fields: [recipeIngredientId, recipeId], references: [id, recipeId], onDelete: Cascade)
+  recipeTranslation   RecipeTranslation @relation(fields: [recipeTranslationId, recipeId], references: [id, recipeId], onDelete: Cascade)
+
+  @@unique([recipeIngredientId, recipeTranslationId])
+  @@index([recipeTranslationId])
+  @@map("recipe_ingredient_translations")
+}
+
+model RecipeCountry {
+  recipeId  String  @map("recipe_id") @db.Uuid
+  countryId String  @map("country_id") @db.Uuid
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Restrict)
+
+  @@id([recipeId, countryId])
+  @@index([countryId])
+  @@map("recipe_countries")
+}
+
+model RecipeCuisine {
+  recipeId  String  @map("recipe_id") @db.Uuid
+  cuisineId String  @map("cuisine_id") @db.Uuid
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  cuisine   Cuisine @relation(fields: [cuisineId], references: [id], onDelete: Restrict)
+
+  @@id([recipeId, cuisineId])
+  @@index([cuisineId])
+  @@map("recipe_cuisines")
+}
+
+model RecipeDietaryTag {
+  recipeId     String     @map("recipe_id") @db.Uuid
+  dietaryTagId String     @map("dietary_tag_id") @db.Uuid
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  dietaryTag   DietaryTag @relation(fields: [dietaryTagId], references: [id], onDelete: Restrict)
+
+  @@id([recipeId, dietaryTagId])
+  @@index([dietaryTagId])
+  @@map("recipe_dietary_tags")
+}
+
+/// Durable proof that this development seed created a catalog or recipe row.
+/// A null recipe owner, a matching slug, or a matching original language is not provenance.
+model SeedProvenance {
+  id         String   @id @default(uuid()) @db.Uuid
+  seedKey    String   @map("seed_key")
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([entityType, entityId])
+  @@index([seedKey])
+  @@map("seed_provenance")
 }

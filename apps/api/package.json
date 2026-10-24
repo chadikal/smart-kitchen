@@ -9,6 +9,8 @@
     "build": "nest build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "prisma:generate": "prisma generate",
+    "prisma:seed": "node ./scripts/run-seed.cjs",
+    "prisma:reconcile-seed": "node ./scripts/run-seed.cjs prisma/reconcile-seed.ts",
     "prebuild": "prisma generate",
     "pretypecheck": "prisma generate",
     "pretest": "prisma generate",
@@ -23,7 +25,8 @@
     "test:watch": "node ./scripts/run-jest.cjs --watch",
     "test:cov": "node ./scripts/run-jest.cjs --coverage",
     "test:debug": "node ./scripts/run-jest.cjs --runInBand",
-    "test:e2e": "node ./scripts/run-jest.cjs --config ./test/jest-e2e.json"
+    "test:e2e": "node ./scripts/run-jest.cjs --config ./test/jest-e2e.json",
+    "test:db": "node ./scripts/run-jest.cjs --config ./test/jest-db.json --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
