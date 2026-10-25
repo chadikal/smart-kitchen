@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { AppText } from '@/components/AppText';
 import { useAppLanguage } from '@/src/i18n/language-provider';
+import { layoutDirection } from '@/src/i18n/layout';
 
 type PlaceholderScreenProps = {
   title: string;
@@ -9,16 +10,12 @@ type PlaceholderScreenProps = {
 
 export function PlaceholderScreen({ title, body }: PlaceholderScreenProps) {
   const { direction } = useAppLanguage();
-  const textAlign = direction === 'rtl' ? 'right' : 'left';
+  const layout = layoutDirection(direction);
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={[styles.title, { textAlign, writingDirection: direction }]}>
-        {title}
-      </Text>
-      <Text variant="bodyLarge" style={{ textAlign, writingDirection: direction }}>
-        {body}
-      </Text>
+    <View {...layout.props} style={[styles.container, layout.style]}>
+      <AppText role="section">{title}</AppText>
+      <AppText role="body">{body}</AppText>
     </View>
   );
 }
@@ -26,11 +23,10 @@ export function PlaceholderScreen({ title, body }: PlaceholderScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
+    alignItems: 'stretch',
     justifyContent: 'center',
     padding: 24,
     gap: 12,
-  },
-  title: {
-    fontWeight: '600',
   },
 });

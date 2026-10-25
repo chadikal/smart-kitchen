@@ -18,7 +18,9 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],
-  "exclude": [
-    "src/i18n/languages.test.ts"
+    "exclude": [
+    "src/i18n/languages.test.ts",
+    "src/catalog/sample-recipes.test.ts",
+    "src/catalog/live-recipes.test.ts"
   ]
 }

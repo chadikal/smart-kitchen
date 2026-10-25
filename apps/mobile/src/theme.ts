@@ -1,15 +1,18 @@
 import { MD3LightTheme, type MD3Theme } from 'react-native-paper';
+import { colors } from '@/src/theme/tokens';
 
 export const theme: MD3Theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#6E8B74',
+    primary: colors.sage,
     onPrimary: '#FFFFFF',
-    primaryContainer: '#E4EFE6',
+    primaryContainer: colors.sageWash,
     secondary: '#C4A484',
-    background: '#F7F3EA',
-    surface: '#FFFDF8',
-    outline: '#D9D0C1',
+    background: colors.paper,
+    surface: colors.card,
+    outline: colors.line,
+    onSurface: colors.ink,
+    onSurfaceVariant: colors.muted,
   },
 };

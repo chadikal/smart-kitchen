@@ -8,7 +8,41 @@
   },
   "home": {
     "title": "Home",
-    "body": "Your kitchen overview will appear here."
+    "body": "Your kitchen overview will appear here.",
+    "guest": "Guest",
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "greeting": "A little inspiration.\nA lovely meal.",
+    "searchLabel": "Search recipe titles",
+    "searchPlaceholder": "Search recipe titles",
+    "featuredHeading": "Made for slow Sundays",
+    "sampleBadge": "Sample recipe box",
+    "placesHeading": "A taste of somewhere",
+    "sampleCount": "{{count}} in the sample box",
+    "sampleHeading": "In the sample recipe box",
+    "sampleNote": "Preview of the sample catalog, not live kitchen data.",
+    "sampleEmpty": "No sample recipe titles match that search.",
+    "liveHeading": "Live recipes",
+    "liveUnavailable": "Live recipes are not available from here right now.",
+    "liveEmpty": "No live recipe titles match that search.",
+    "liveChecking": "Looking for live recipes…",
+    "liveMore": "Showing the first {{shown}} of {{total}} live titles.",
+    "detail": "{{minutes}} min · {{difficulty}}",
+    "sampleFallback": {
+      "en": "This sample is shown in English.",
+      "ar": "This sample is shown in Arabic."
+    },
+    "liveFallback": {
+      "en": "This live recipe is shown in English.",
+      "ar": "This live recipe is shown in Arabic."
+    },
+    "welcomeNote": "Make yourself at home. Explore freely, no account needed.",
+    "difficulty": {
+      "EASY": "Easy",
+      "MEDIUM": "Medium",
+      "HARD": "Hard"
+    }
   },
   "discover": {
     "title": "Discover",
@@ -26,7 +60,7 @@
     "title": "Profile",
     "body": "Language and account settings will appear here.",
     "language": "Language",
-    "api": "API address: {{url}}"
+    "apiLabel": "API address:"
   },
   "language": {
     "english": "English",

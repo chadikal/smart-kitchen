@@ -121,6 +121,6 @@ Shared TypeScript strictness lives in `tsconfig.base.json`. The mobile app exten
 
 Prisma ORM 8 was still a release candidate when this foundation was created, so the API stays on Prisma 7. The NestJS 12 ESM starter uses Vitest; this API uses the CommonJS starter so the tests run on Jest.
 
-## Known mobile UI issue
+## Home UI milestone
 
-Phone testing confirmed the app opens and language switching works on SDK 58. The Arabic language selector has incorrect borders and spacing; its visual fix is deferred to the UI redesign.
+The Home screen uses cookbook styling, local fonts and illustrations, preview recipes, and a separate live API section. The language selector was rebuilt, and Arabic text alignment was verified on an iPhone 11 with in-session English/Arabic switching. Mobile lint, typecheck, and 13 tests pass; web export and exported-site interaction were also verified during this milestone.

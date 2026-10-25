@@ -1,50 +1,50 @@
-import { StyleSheet, View } from 'react-native';
-import { SegmentedButtons, Text } from 'react-native-paper';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { AppText } from '@/components/AppText';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { Screen } from '@/components/Screen';
 import { apiBaseUrl } from '@/src/config/api';
-import { PlaceholderScreen } from '@/components/PlaceholderScreen';
-import { useAppLanguage } from '@/src/i18n/language-provider';
-import type { AppLanguage } from '@/src/i18n/languages';
+import { colors } from '@/src/theme/tokens';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { language, direction, setLanguage } = useAppLanguage();
-  const textAlign = direction === 'rtl' ? 'right' : 'left';
 
   return (
-    <View style={styles.screen}>
-      <PlaceholderScreen title={t('profile.title')} body={t('profile.body')} />
-      <View style={styles.language}>
-        <Text variant="titleMedium" style={{ textAlign, writingDirection: direction }}>
-          {t('profile.language')}
-        </Text>
-        <SegmentedButtons
-          value={language}
-          onValueChange={(value) => {
-            if (value === 'en' || value === 'ar') {
-              setLanguage(value);
-            }
-          }}
-          buttons={[
-            { value: 'en' satisfies AppLanguage, label: t('language.english') },
-            { value: 'ar' satisfies AppLanguage, label: t('language.arabic') },
-          ]}
-        />
-        <Text variant="bodyMedium" style={{ textAlign, writingDirection: direction }}>
-          {t('profile.api', { url: apiBaseUrl })}
-        </Text>
+    <Screen>
+      <View style={styles.copy}>
+        <AppText role="section">{t('profile.title')}</AppText>
+        <AppText role="body">{t('profile.body')}</AppText>
       </View>
-    </View>
+      <View style={styles.language}>
+        <AppText role="compactTitle">{t('profile.language')}</AppText>
+        <LanguageSelector
+          label={t('profile.language')}
+          english={t('language.english')}
+          arabic={t('language.arabic')}
+        />
+        <AppText role="meta" color={colors.muted}>
+          {t('profile.apiLabel')}{' '}
+          <Text style={styles.url}>{`\u2066${apiBaseUrl}\u2069`}</Text>
+        </AppText>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  copy: {
+    alignSelf: 'stretch',
+    width: '100%',
+    alignItems: 'stretch',
+    gap: 12,
   },
   language: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
+    alignSelf: 'stretch',
+    width: '100%',
+    alignItems: 'stretch',
     gap: 12,
+  },
+  url: {
+    writingDirection: 'ltr',
   },
 });
