@@ -7,6 +7,7 @@ export type LiveRecipeCard = {
   totalTimeMinutes: number;
   difficulty: SampleDifficulty;
   kicker: string;
+  dietaryNames: string[];
   fallback: boolean;
   contentLanguage: 'en' | 'ar';
 };
@@ -64,6 +65,7 @@ function readCard(value: unknown): LiveRecipeCard | null {
     contentLanguage?: unknown;
     countries?: unknown;
     cuisines?: unknown;
+    dietaryTags?: unknown;
   };
   if (typeof item.slug !== 'string' || typeof item.title !== 'string') return null;
   if (typeof item.totalTimeMinutes !== 'number') return null;
@@ -76,6 +78,7 @@ function readCard(value: unknown): LiveRecipeCard | null {
     totalTimeMinutes: item.totalTimeMinutes,
     difficulty: item.difficulty,
     kicker: names.join(' · '),
+    dietaryNames: namesFrom(item.dietaryTags),
     fallback: item.fallbackUsed,
     contentLanguage: item.contentLanguage,
   };

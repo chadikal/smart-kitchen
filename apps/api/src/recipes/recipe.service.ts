@@ -1,7 +1,13 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PublicLanguage, trimCharacters, toDatabaseLanguage } from './recipe-language';
+import {
+  PublicLanguage,
+  selectCatalogLabel,
+  trimCharacters,
+  toDatabaseLanguage,
+  toPublicLanguage,
+} from './recipe-language';
 import {
   mapPublicRecipe,
   publicRecipeInclude,
@@ -18,6 +24,19 @@ export interface RecipeListResponse {
   total: number;
   pageCount: number;
 }
+
+export interface CatalogOption {
+  slug: string;
+  name: string;
+  language: PublicLanguage;
+  fallbackUsed: boolean;
+}
+
+export interface CountryOption extends CatalogOption {
+  code: string | null;
+}
+
+export type CatalogKind = 'country' | 'cuisine' | 'dietaryTag';
 
 @Injectable()
 export class RecipesService {
@@ -68,6 +87,61 @@ export class RecipesService {
       total,
       pageCount: total === 0 ? 0 : Math.ceil(total / query.pageSize),
     };
+  }
+
+  async catalog(kind: CatalogKind, lang: PublicLanguage): Promise<CatalogOption[] | CountryOption[]> {
+    const ids = await this.prisma.$queryRaw<Array<{ id: unknown }>>(catalogIdQuery(kind));
+    const orderedIds = ids.map((row) => readId(row.id));
+    if (orderedIds.length === 0) return [];
+    const requested = toDatabaseLanguage(lang);
+    if (kind === 'country') {
+      const rows = await this.prisma.country.findMany({
+        where: { id: { in: orderedIds } },
+        include: { translations: true },
+      });
+      return sortOptions(
+        rows.flatMap((row) => {
+          const label = selectCatalogLabel(row.originalLanguage, row.translations, requested);
+          if (!label) return [];
+          const code = row.code?.trim() ?? '';
+          return [
+            {
+              slug: row.slug,
+              name: label.name,
+              language: toPublicLanguage(label.language),
+              fallbackUsed: toPublicLanguage(label.language) !== lang,
+              code: code === '' ? null : code,
+            },
+          ];
+        }),
+        lang,
+      );
+    }
+    const rows =
+      kind === 'cuisine'
+        ? await this.prisma.cuisine.findMany({
+            where: { id: { in: orderedIds } },
+            include: { translations: true },
+          })
+        : await this.prisma.dietaryTag.findMany({
+            where: { id: { in: orderedIds } },
+            include: { translations: true },
+          });
+    return sortOptions(
+      rows.flatMap((row) => {
+        const label = selectCatalogLabel(row.originalLanguage, row.translations, requested);
+        if (!label) return [];
+        return [
+          {
+            slug: row.slug,
+            name: label.name,
+            language: toPublicLanguage(label.language),
+            fallbackUsed: toPublicLanguage(label.language) !== lang,
+          },
+        ];
+      }),
+      lang,
+    );
   }
 
   async detail(slug: string, lang: PublicLanguage): Promise<RecipeDetail> {
@@ -127,7 +201,7 @@ export class RecipesService {
  * Completeness matches isCompleteTranslation: a nonblank title, and a nonblank
  * instruction on this translation for every step. No steps leaves the title check.
  */
-function translationIsComplete(languageText: Prisma.Sql): Prisma.Sql {
+export function translationIsComplete(languageText: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`
     EXISTS (
       SELECT 1
@@ -213,6 +287,59 @@ function publicConditions(
     );
   }
   return Prisma.join(conditions, ' AND ');
+}
+
+function catalogIdQuery(kind: CatalogKind): Prisma.Sql {
+  const listed = Prisma.sql`
+    r.publication_status::text = 'PUBLISHED'
+    AND r.visibility::text = 'PUBLIC'
+    AND ${translationIsComplete(Prisma.sql`r.original_language::text`)}
+  `;
+  if (kind === 'country') {
+    return Prisma.sql`
+      SELECT entity.id::text AS id
+      FROM countries entity
+      WHERE EXISTS (
+        SELECT 1
+        FROM recipes r
+        INNER JOIN recipe_countries link
+          ON link.recipe_id = r.id AND link.country_id = entity.id
+        WHERE ${listed}
+      )
+    `;
+  }
+  if (kind === 'cuisine') {
+    return Prisma.sql`
+      SELECT entity.id::text AS id
+      FROM cuisines entity
+      WHERE EXISTS (
+        SELECT 1
+        FROM recipes r
+        INNER JOIN recipe_cuisines link
+          ON link.recipe_id = r.id AND link.cuisine_id = entity.id
+        WHERE ${listed}
+      )
+    `;
+  }
+  return Prisma.sql`
+    SELECT entity.id::text AS id
+    FROM dietary_tags entity
+    WHERE EXISTS (
+      SELECT 1
+      FROM recipes r
+      INNER JOIN recipe_dietary_tags link
+        ON link.recipe_id = r.id AND link.dietary_tag_id = entity.id
+      WHERE ${listed}
+    )
+  `;
+}
+
+function sortOptions<T extends CatalogOption>(items: T[], lang: PublicLanguage): T[] {
+  return [...items].sort((left, right) => {
+    const name = left.name.localeCompare(right.name, lang, { sensitivity: 'base' });
+    if (name !== 0) return name;
+    return left.slug < right.slug ? -1 : left.slug > right.slug ? 1 : 0;
+  });
 }
 
 function readCount(value: unknown): number {

@@ -133,6 +133,16 @@ The initial migration matches the Prisma schema, plus the checks above. `2026102
 
 `npm run prisma:seed` loads eight original sample recipes into `smart_kitchen_migration_test`. It does not run during API startup or `prisma migrate`. The command reads `MIGRATION_TEST_DATABASE_URL` and uses that URL only when it is `postgresql` on `127.0.0.1`, `localhost`, or `::1`, port `5432`, database `smart_kitchen_migration_test`, and `schema=public`, with no other connection options. It also refuses to run when `DATABASE_URL` names that same database.
 
+`npm run prisma:seed:development` loads the same catalog into `smart_kitchen` and calls the same seed writer. It does not replace `npm run prisma:seed` or `npm run prisma:reconcile-seed`. From `apps/api`, with `DATABASE_URL` already able to authenticate to the local application database:
+
+```powershell
+$env:NODE_ENV = 'development'
+npx prisma migrate deploy
+npm run prisma:seed:development
+```
+
+`npx prisma migrate deploy` applies pending migrations to `DATABASE_URL`. The development seed runs only when `NODE_ENV` is `development` and `DATABASE_URL` is `postgresql` on `127.0.0.1`, `localhost`, or `::1`, port `5432`, database `smart_kitchen`, and `schema=public`, with no other connection options. Production mode, a remote host, `smart_kitchen_migration_test`, any other database, and any extra argument are rejected. `MIGRATION_TEST_DATABASE_URL` is ignored. After connecting, the command reads `current_database()` and returns before writing unless the result is `smart_kitchen`. Errors from this command do not include the connection URL.
+
 Sample recipes are stored with a null owner as `PUBLISHED` and `PUBLIC`. Seven have English and Arabic text. `semolina-milk-pudding` is Arabic only, so an English request should fall back to the original Arabic document. Baking masses are gram strings such as `200.000`. Liquids use the metric volumes in this document. Salt is `TO_TASTE` where a recipe is seasoned to taste. Parsley, basil, and coriander are optional.
 
 A dietary tag is stored only when every ingredient on the recipe, including optional ingredients, allows it. Roast chicken is gluten-free and dairy-free. The yogurt cake and semolina pudding are vegetarian. Miso soup is vegetarian, vegan, and dairy-free, and it is not marked gluten-free.

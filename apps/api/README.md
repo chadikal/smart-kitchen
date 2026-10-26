@@ -6,9 +6,11 @@ The catalog schema and the rules it does not enforce are documented in [prisma/D
 
 `npm run prisma:seed` writes the sample catalog to `smart_kitchen_migration_test` only for rows already marked with `seed_provenance`. It is not part of `npm start` or `prisma migrate`. Unmarked rows already in that database are left unchanged, and the command aborts instead of adopting them. `npm run prisma:reconcile-seed` reports whether those existing rows match the catalog. Add `--apply` only after reviewing that report; it records provenance and does not change the rows. `npm run test:db` checks the migration, ownership collisions, repeatable updates of seed-owned rows, and the public recipe HTTP API.
 
+`npm run prisma:seed:development` writes that same catalog to the application database. From `apps/api`, set `NODE_ENV` to `development`, then run `npx prisma migrate deploy` and `npm run prisma:seed:development`. The seed command accepts `DATABASE_URL` only when it is `postgresql` on a loopback host, port 5432, database `smart_kitchen`, and `schema=public`, with no other connection options. It rejects production mode, remote hosts, the migration-test database, and extra arguments. It checks `current_database()` before calling the shared seed writer, and it does not print the connection URL.
+
 ## Public recipes
 
-`GET /health` returns `{ "status": "ok" }` and does not query PostgreSQL. `GET /recipes` and `GET /recipes/:slug` are the public read API. There is no authentication and no write route. Responses are explicit JSON objects: they include slugs and omit database ids, `ownerId`, and seed provenance.
+`GET /health` returns `{ "status": "ok" }` and does not query PostgreSQL. `GET /recipes` and `GET /recipes/:slug` are the public recipe API. `GET /countries`, `GET /cuisines`, and `GET /dietary-tags` are the public catalog-option API. There is no authentication and no write route. Responses are explicit JSON objects: they include slugs and omit database ids, `ownerId`, and seed provenance.
 
 A recipe is visible only when `publicationStatus` is `PUBLISHED`, `visibility` is `PUBLIC`, and its original-language translation is complete. A private recipe, a draft, a recipe whose original translation is missing or incomplete, and a slug that is not in the catalog all return the same `404` body, `Recipe not found`. A malformed slug or query parameter returns `400`. The list and the detail route use the same access rule.
 
@@ -30,6 +32,12 @@ List filters are combined with AND. A recipe must match every supplied filter:
 Unknown parameters and repeated parameters are `400`. Filtering, search, ordering, and pagination run in PostgreSQL. The API does not load the catalog and then filter it in process.
 
 The list response is `{ items, page, pageSize, total, pageCount }`. `total` counts every visible recipe matching the filters, not only the current page. `pageCount` is `0` when `total` is `0`, and otherwise `ceil(total / pageSize)`. Items are ordered by the lowercase selected title, then by `slug`. The slug is unique, so the order does not change between requests. A list item is a summary: it has no ingredient lines and no steps.
+
+### Catalog options
+
+`GET /countries`, `GET /cuisines`, and `GET /dietary-tags` accept only `lang`, with the same `en` / `ar` rules as the recipe list. Each response is `{ items }`. An item is `{ slug, name, language, fallbackUsed }`. Country items also include `code`, the stored two-letter code or `null`.
+
+An option is included only when at least one recipe that the public list would return is linked to it. Drafts, private recipes, and recipes whose original-language translation is incomplete do not contribute options. Names use the same catalog-label fallback as recipe summaries: a nonblank requested-language name when the original-language name is also nonblank, otherwise the original-language name. `language` is the language of the returned name. `fallbackUsed` is true when that language differs from `lang`. A label with no usable original-language name is omitted. Items are ordered by name in the requested language, then by `slug`. These routes are not paginated and do not accept recipe filters.
 
 ### Language
 

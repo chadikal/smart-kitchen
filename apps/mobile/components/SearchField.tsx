@@ -1,5 +1,6 @@
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import SearchIcon from '@/assets/brand/search.svg';
+import ClearIcon from '@/assets/brand/x.svg';
 import { fontFamilyFor } from '@/src/fonts';
 import { useAppLanguage } from '@/src/i18n/language-provider';
 import { textAlignFor } from '@/src/i18n/languages';
@@ -11,9 +12,11 @@ type SearchFieldProps = {
   onChangeText: (value: string) => void;
   label: string;
   placeholder: string;
+  clearLabel?: string;
+  onClear?: () => void;
 };
 
-export function SearchField({ value, onChangeText, label, placeholder }: SearchFieldProps) {
+export function SearchField({ value, onChangeText, label, placeholder, clearLabel, onClear }: SearchFieldProps) {
   const { direction, language } = useAppLanguage();
   const layout = layoutDirection(direction);
 
@@ -40,6 +43,11 @@ export function SearchField({ value, onChangeText, label, placeholder }: SearchF
           },
         ]}
       />
+      {onClear && value.length > 0 ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={clearLabel} hitSlop={8} onPress={onClear}>
+          <ClearIcon />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

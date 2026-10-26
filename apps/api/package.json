@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "prisma:generate": "prisma generate",
     "prisma:seed": "node ./scripts/run-seed.cjs",
+    "prisma:seed:development": "node ./scripts/run-seed.cjs prisma/seed-development.ts",
     "prisma:reconcile-seed": "node ./scripts/run-seed.cjs prisma/reconcile-seed.ts",
     "prebuild": "prisma generate",
     "pretypecheck": "prisma generate",

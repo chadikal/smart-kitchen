@@ -1,4 +1,9 @@
-import { migrationTestUrl } from '../src/catalog/database-target';
+import {
+  assertDevelopmentDatabase,
+  developmentDatabaseUrl,
+  migrationTestUrl,
+  rejectDevelopmentSeedOverrides,
+} from '../src/catalog/database-target';
 
 const allowed =
   'postgresql://postgres:postgres@127.0.0.1:5432/smart_kitchen_migration_test?schema=public';
@@ -50,7 +55,95 @@ describe('migration test database target', () => {
   });
 });
 
-function restore(name: 'MIGRATION_TEST_DATABASE_URL' | 'DATABASE_URL', value: string | undefined) {
+describe('development database target', () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousApplication = process.env.DATABASE_URL;
+  const previousTest = process.env.MIGRATION_TEST_DATABASE_URL;
+  const secret = 'secret-token';
+  const developmentUrl = `postgresql://postgres:${secret}@127.0.0.1:5432/smart_kitchen?schema=public`;
+
+  afterEach(() => {
+    restore('NODE_ENV', previousNodeEnv);
+    restore('DATABASE_URL', previousApplication);
+    restore('MIGRATION_TEST_DATABASE_URL', previousTest);
+  });
+
+  it('accepts only a development loopback connection to smart_kitchen', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.MIGRATION_TEST_DATABASE_URL = allowed;
+    for (const url of [
+      developmentUrl,
+      `postgresql://postgres:${secret}@localhost:5432/smart_kitchen?schema=public`,
+      `postgresql://postgres:${secret}@[::1]:5432/smart_kitchen?schema=public`,
+    ]) {
+      process.env.DATABASE_URL = url;
+      expect(developmentDatabaseUrl()).toBe(url);
+    }
+  });
+
+  it('rejects production mode, remote hosts, test databases, and target overrides', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.DATABASE_URL = developmentUrl;
+    expect(() => developmentDatabaseUrl()).toThrow(/NODE_ENV is production/);
+
+    process.env.NODE_ENV = 'test';
+    expect(() => developmentDatabaseUrl()).toThrow(/NODE_ENV=development/);
+
+    process.env.NODE_ENV = 'development';
+    for (const url of [
+      `postgresql://postgres:${secret}@example.com:5432/smart_kitchen?schema=public`,
+      `postgresql://postgres:${secret}@10.0.0.8:5432/smart_kitchen?schema=public`,
+      `postgresql://postgres:${secret}@127.0.0.1:5433/smart_kitchen?schema=public`,
+      `postgresql://postgres:${secret}@127.0.0.1:5432/smart_kitchen_migration_test?schema=public`,
+      `postgresql://postgres:${secret}@127.0.0.1:5432/other?schema=public`,
+      `postgresql://postgres:${secret}@127.0.0.1:5432/smart_kitchen?schema=other`,
+      `postgresql://postgres:${secret}@127.0.0.1:5432/smart_kitchen`,
+      `postgresql://postgres:${secret}@127.0.0.1:5432/smart_kitchen?schema=public&hostaddr=8.8.8.8`,
+    ]) {
+      process.env.DATABASE_URL = url;
+      expectSafeUrlError(() => developmentDatabaseUrl());
+    }
+
+    expect(() => rejectDevelopmentSeedOverrides(['prisma/seed-development.ts'])).not.toThrow();
+    expect(() =>
+      rejectDevelopmentSeedOverrides([
+        'prisma/seed-development.ts',
+        '--database-url',
+        developmentUrl,
+      ]),
+    ).toThrow(/target overrides/);
+  });
+
+  it('checks current_database before any seed write', async () => {
+    await expect(
+      assertDevelopmentDatabase({
+        $queryRaw: async <T>() => [{ name: 'smart_kitchen' }] as T,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      assertDevelopmentDatabase({
+        $queryRaw: async <T>() => [{ name: 'smart_kitchen_migration_test' }] as T,
+      }),
+    ).rejects.toThrow(/not smart_kitchen/);
+  });
+
+  function expectSafeUrlError(readUrl: () => string) {
+    let message = '';
+    try {
+      readUrl();
+    } catch (error) {
+      message = error instanceof Error ? error.message : '';
+    }
+    expect(message.length).toBeGreaterThan(0);
+    expect(message).not.toContain(secret);
+    expect(message).not.toContain('postgresql://');
+  }
+});
+
+function restore(
+  name: 'MIGRATION_TEST_DATABASE_URL' | 'DATABASE_URL' | 'NODE_ENV',
+  value: string | undefined,
+) {
   if (value === undefined) {
     delete process.env[name];
     return;

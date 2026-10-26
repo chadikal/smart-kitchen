@@ -48,6 +48,16 @@ npm run prisma:seed
 
 That command does not run on startup or during migration. It uses `MIGRATION_TEST_DATABASE_URL` only when that URL is a local loopback host, port 5432, database `smart_kitchen_migration_test`, and `schema=public` with no other connection options. It updates rows it has already marked in `seed_provenance`. Unmarked rows are left unchanged. It will not write to `smart_kitchen`.
 
+Prepare the application database from `apps/api` only after `DATABASE_URL` authenticates to local `smart_kitchen`. Review its current tables before writing:
+
+```powershell
+$env:NODE_ENV = 'development'
+npx prisma migrate deploy
+npm run prisma:seed:development
+```
+
+`npx prisma migrate deploy` applies pending migrations through `DATABASE_URL`. `npm run prisma:seed:development` is separate. It runs only when `NODE_ENV` is `development` and `DATABASE_URL` is `postgresql` on `127.0.0.1`, `localhost`, or `::1`, port 5432, database `smart_kitchen`, and `schema=public`, with no other connection options. It rejects production mode, remote hosts, `smart_kitchen_migration_test`, any other database, and extra arguments. It reads `current_database()` and stops before writing unless that name is `smart_kitchen`. The write reuses the migration-test seed's provenance checks. The command does not print the connection URL, and `MIGRATION_TEST_DATABASE_URL` cannot retarget it.
+
 `npm run prisma:reconcile-seed` compares the current sample catalog with rows already stored in the test database and prints mismatches. It does not write. `npm run prisma:reconcile-seed -- --apply` records provenance for an exact match and leaves every stored field unchanged.
 
 `apps\mobile\.env` sets `EXPO_PUBLIC_API_URL`. `localhost` works in a browser on the same computer. A physical phone needs your computer's LAN address, for example `http://192.168.1.20:3000`.
@@ -68,7 +78,7 @@ Invoke-RestMethod http://localhost:3000/health
 
 The response is `{ "status": "ok" }`. Prisma Client is configured, and it connects on the first query. Starting the API and calling `/health` does not require PostgreSQL to be running.
 
-`GET /recipes` and `GET /recipes/:slug` browse published public recipes. Filters, language fallback, and decimal quantities are documented in [apps/api/README.md](apps/api/README.md).
+`GET /recipes` and `GET /recipes/:slug` browse published public recipes. `GET /countries`, `GET /cuisines`, and `GET /dietary-tags` list the translated options used by those recipes. Filters, language fallback, and decimal quantities are documented in [apps/api/README.md](apps/api/README.md).
 
 ## Run the mobile app
 
@@ -124,3 +134,7 @@ Prisma ORM 8 was still a release candidate when this foundation was created, so 
 ## Home UI milestone
 
 The Home screen uses cookbook styling, local fonts and illustrations, preview recipes, and a separate live API section. The language selector was rebuilt, and Arabic text alignment was verified on an iPhone 11 with in-session English/Arabic switching. Mobile lint, typecheck, and 13 tests pass; web export and exported-site interaction were also verified during this milestone.
+
+## Discover milestone
+
+Savora Discover browses live API recipes with title search, country/cuisine/dietary filters, difficulty and maximum cooking time, pagination, refresh, and retry states. English and Arabic RTL and the live API connection were confirmed on an iPhone. Home retains labeled preview content. Recipe detail navigation is the next milestone.
