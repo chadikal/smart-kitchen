@@ -42,7 +42,7 @@
     "build": "expo export --platform web --output-dir dist",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/i18n/languages.test.ts src/catalog/sample-recipes.test.ts src/catalog/live-recipes.test.ts src/catalog/discover.test.ts"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/i18n/languages.test.ts src/catalog/sample-recipes.test.ts src/catalog/live-recipes.test.ts src/catalog/discover.test.ts src/catalog/recipe-detail.test.ts"
   },
   "private": true
 }

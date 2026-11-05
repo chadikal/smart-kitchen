@@ -5,13 +5,14 @@ import { AppText } from '@/components/AppText';
 type HeadingProps = {
   children: string;
   action?: ReactNode;
+  accessibilityRole?: 'header';
 };
 
-export function Heading({ children, action }: HeadingProps) {
+export function Heading({ children, action, accessibilityRole }: HeadingProps) {
   return (
     <View style={styles.row}>
       <View style={styles.title}>
-        <AppText role="section">{children}</AppText>
+        <AppText role="section" accessibilityRole={accessibilityRole}>{children}</AppText>
       </View>
       {action}
     </View>

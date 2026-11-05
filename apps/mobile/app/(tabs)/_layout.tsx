@@ -18,8 +18,17 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const labelFont = fontFamilyFor(language, 'body');
 
-  const tabLabel = ({ color, children }: { color: ColorValue; children: string }) => (
-    <Text numberOfLines={2} style={[styles.label, { color, fontFamily: labelFont }]}>
+  const tabLabel = ({ color, children, position }: {
+    color: ColorValue;
+    children: string;
+    position: 'below-icon' | 'beside-icon';
+  }) => (
+    <Text numberOfLines={2} style={[
+      styles.label,
+      language === 'ar' ? styles.labelArabic : styles.labelEnglish,
+      position === 'below-icon' ? styles.labelBelow : styles.labelBeside,
+      { color, fontFamily: labelFont },
+    ]}>
       {children}
     </Text>
   );
@@ -29,8 +38,9 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.sage,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: [styles.bar, { height: 64 + insets.bottom, paddingBottom: Math.max(insets.bottom, 6) }],
+        tabBarStyle: [styles.bar, { height: 84 + Math.max(insets.bottom, 6), paddingBottom: Math.max(insets.bottom, 6) }],
         tabBarItemStyle: styles.item,
+        tabBarIconStyle: styles.iconSlot,
         headerStyle: { backgroundColor: colors.paper },
         headerTintColor: colors.ink,
         headerTitleStyle: { fontFamily: fontFamilyFor(language, 'section') },
@@ -55,6 +65,7 @@ export default function TabLayout() {
         name="discover"
         options={{
           title: t('tabs.discover'),
+          headerShown: false,
           tabBarLabel: tabLabel,
           tabBarIcon: ({ focused }) => (
             <TabGlyph focused={focused}>
@@ -116,12 +127,19 @@ const styles = StyleSheet.create({
   },
   item: {
     minHeight: 48,
-    paddingTop: 2,
   },
+  iconSlot: { height: 32 },
+  labelBelow: { marginTop: 6 },
+  labelBeside: { marginStart: 8 },
   label: {
     fontSize: 11,
-    lineHeight: 14,
     textAlign: 'center',
+  },
+  labelEnglish: { lineHeight: 14 },
+  labelArabic: {
+    // Use the font's natural ascent/descent so tall Arabic letters aren't clipped.
+    paddingVertical: 2,
+    includeFontPadding: true,
   },
   glyph: {
     minWidth: 44,

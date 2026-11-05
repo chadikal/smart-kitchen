@@ -152,3 +152,20 @@ Seed ownership is a `seed_provenance` row whose `seed_key` is `smart-kitchen-dev
 The eight sample recipes already in `smart_kitchen_migration_test` were written before provenance existed. They are unmarked. The seed does not attach provenance to them, does not update them, and does not delete them. The next `npm run prisma:seed` of that catalog aborts and rolls back.
 
 `npm run prisma:reconcile-seed` is the one-time check for those rows. It uses the same guarded test URL and compares only the current eight-recipe catalog and its countries, cuisines, dietary tags, and ingredients. Decimal quantities are compared with `toFixed(3)`, and unordered links are sorted. Generated ids and timestamps are ignored. The default run is read-only and prints each entity type, slug, id, and any mismatched fields. `npm run prisma:reconcile-seed -- --apply` repeats that comparison in one transaction under the seed advisory lock, locks the compared rows and their children, and inserts missing provenance only when every compared row matches exactly. It preserves ids, content, and timestamps. A user-owned recipe, conflicting provenance, a missing row, an extra child, or any content mismatch aborts the whole transaction. Running it again after a successful apply inserts nothing further. It does not call the seed writer, delete rows, or reset the database. `--apply` stays a reviewed step and is not part of startup or migration.
+
+
+### Imported development content
+
+Facts may be null when a provider has no reliable time, servings or difficulty.
+Existing authoring defaults remain; import writers must explicitly pass null.
+`Recipe.importId` uniquely identifies the reviewed source and restricts source
+record deletion. `developmentOnly` recipes are excluded from all public reads
+outside development mode. Review notes and timestamps distinguish development
+approval from `rightsReviewed`, which remains false until production rights review.
+
+Ingredient amounts now permit a third, mutually exclusive representation:
+nonblank `sourceMeasure` with quantity/unit/qualitativeAmount all null. This
+preserves provider text and never claims metric unit equivalence. The SQL check
+continues rejecting zero/negative quantities, missing units and mixed modes.
+
+Recipe metadata reviews store per-field evidence and an applied-content fingerprint. `additionalTimeMinutes` includes quantified resting/waiting; null means required waiting is unquantified, so total time and maximum-time eligibility are unknown. See `src/imports/ENRICHMENT.md`.

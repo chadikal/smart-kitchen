@@ -32,6 +32,7 @@ export function SearchField({ value, onChangeText, label, placeholder, clearLabe
         accessibilityLabel={label}
         autoCapitalize="none"
         autoCorrect={false}
+        maxLength={100}
         returnKeyType="search"
         clearButtonMode="while-editing"
         style={[

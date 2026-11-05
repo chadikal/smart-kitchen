@@ -180,25 +180,30 @@ model IngredientTranslation {
 }
 
 model Recipe {
-  id                String              @id @default(uuid()) @db.Uuid
-  slug              String              @unique
-  ownerId           String?             @map("owner_id") @db.Uuid
-  originalLanguage  Language            @map("original_language")
-  publicationStatus PublicationStatus   @default(DRAFT) @map("publication_status")
-  visibility        Visibility          @default(PRIVATE)
-  prepTimeMinutes   Int                 @default(0) @map("prep_time_minutes")
-  cookTimeMinutes   Int                 @default(0) @map("cook_time_minutes")
-  servings          Int                 @default(1)
-  difficulty        Difficulty
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-  owner             User?               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  translations      RecipeTranslation[]
-  steps             RecipeStep[]
-  ingredients       RecipeIngredient[]
-  countries         RecipeCountry[]
-  cuisines          RecipeCuisine[]
-  dietaryTags       RecipeDietaryTag[]
+  id                    String                @id @default(uuid()) @db.Uuid
+  slug                  String                @unique
+  ownerId               String?               @map("owner_id") @db.Uuid
+  originalLanguage      Language              @map("original_language")
+  publicationStatus     PublicationStatus     @default(DRAFT) @map("publication_status")
+  visibility            Visibility            @default(PRIVATE)
+  prepTimeMinutes       Int?                  @default(0) @map("prep_time_minutes")
+  cookTimeMinutes       Int?                  @default(0) @map("cook_time_minutes")
+  servings              Int?                  @default(1)
+  difficulty            Difficulty?
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+  additionalTimeMinutes Int?                  @default(0) @map("additional_time_minutes")
+  metadataReview        RecipeMetadataReview?
+  developmentOnly       Boolean               @default(false) @map("development_only")
+  importId              String?               @unique @map("import_id") @db.Uuid
+  importedFrom          RecipeImport?         @relation(fields: [importId], references: [id], onDelete: Restrict)
+  owner                 User?                 @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  translations          RecipeTranslation[]
+  steps                 RecipeStep[]
+  ingredients           RecipeIngredient[]
+  countries             RecipeCountry[]
+  cuisines              RecipeCuisine[]
+  dietaryTags           RecipeDietaryTag[]
 
   @@index([ownerId])
   @@index([publicationStatus, visibility])
@@ -261,6 +266,7 @@ model RecipeIngredient {
   position          Int
   quantity          Decimal?                      @db.Decimal(12, 3)
   unit              MeasuredUnit?
+  sourceMeasure     String?                       @map("source_measure")
   qualitativeAmount QualitativeAmount?            @map("qualitative_amount")
   isOptional        Boolean                       @default(false) @map("is_optional")
   createdAt         DateTime                      @default(now()) @map("created_at")
@@ -336,4 +342,65 @@ model SeedProvenance {
   @@unique([entityType, entityId])
   @@index([seedKey])
   @@map("seed_provenance")
+}
+
+enum RecipeImportProvider {
+  THEMEALDB
+
+  @@map("recipe_import_provider")
+}
+
+enum RecipeImportReviewStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+
+  @@map("recipe_import_review_status")
+}
+
+/// Provider data awaiting human review, never selected by public recipe routes.
+/// No guessed measurements, times, servings, difficulty, diets, or translations.
+model RecipeImport {
+  id                    String                   @id @default(uuid()) @db.Uuid
+  provider              RecipeImportProvider
+  externalId            String                   @map("external_id")
+  title                 String
+  originalLanguage      Language                 @default(EN) @map("original_language")
+  area                  String?
+  country               String?
+  category              String?
+  imageUrl              String?                  @map("image_url")
+  sourceUrl             String?                  @map("source_url")
+  imageSourceUrl        String?                  @map("image_source_url")
+  licenseMetadata       Json                     @map("license_metadata")
+  ingredients           Json
+  instructionsText      String                   @map("instructions_text") @db.Text
+  rawPayload            Json                     @map("raw_payload")
+  reviewWarnings        String[]                 @map("review_warnings")
+  reviewStatus          RecipeImportReviewStatus @default(PENDING_REVIEW) @map("review_status")
+  developmentReviewNote String?                  @map("development_review_note")
+  developmentReviewedAt DateTime?                @map("development_reviewed_at")
+  publishedRecipe       Recipe?
+  rightsReviewed        Boolean                  @default(false) @map("rights_reviewed")
+  fetchedAt             DateTime                 @default(now()) @map("fetched_at")
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+
+  @@unique([provider, externalId])
+  @@index([reviewStatus])
+  @@map("recipe_imports")
+}
+
+/// Human-readable evidence and immutable applied-content fingerprint for reviewed additions.
+model RecipeMetadataReview {
+  recipeId    String   @id @map("recipe_id") @db.Uuid
+  revision    String
+  contentHash String   @map("content_hash")
+  fields      Json
+  timingNote  String?  @map("timing_note")
+  reviewedBy  String   @map("reviewed_by")
+  reviewedAt  DateTime @default(now()) @map("reviewed_at")
+  recipe      Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("recipe_metadata_reviews")
 }

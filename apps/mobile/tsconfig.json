@@ -10,7 +10,8 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "allowImportingTsExtensions": true
   },
   "include": [
     "**/*.ts",
@@ -18,10 +19,11 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],
-    "exclude": [
+  "exclude": [
     "src/i18n/languages.test.ts",
     "src/catalog/sample-recipes.test.ts",
     "src/catalog/live-recipes.test.ts",
-    "src/catalog/discover.test.ts"
+    "src/catalog/discover.test.ts",
+    "src/catalog/recipe-detail.test.ts"
   ]
 }

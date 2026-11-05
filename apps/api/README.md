@@ -1,5 +1,9 @@
 # Smart Kitchen API
 
+TheMealDB is available as a bounded development import into a separate review inbox.
+See [import workflow and source requirements](src/imports/README.md). Imports are
+not automatically published or included in the mobile catalog.
+
 The REST API lives in this workspace. Setup, environment variables, and run commands are documented in the repository root [README](../../README.md).
 
 The catalog schema and the rules it does not enforce are documented in [prisma/DATA_MODEL.md](prisma/DATA_MODEL.md).
@@ -25,13 +29,22 @@ List filters are combined with AND. A recipe must match every supplied filter:
 | `q` | Trimmed length 1–100. Case-insensitive substring of the selected recipe title only. `%`, `_`, and `\` are literal characters. Descriptions, steps, notes, and the unused language are not searched. |
 | `country`, `cuisine`, `dietaryTag` | One exact slug each, matching `^[a-z0-9]+(?:-[a-z0-9]+)*$` and at most 80 characters. These are not name searches. |
 | `difficulty` | `EASY`, `MEDIUM`, or `HARD`. |
-| `maxTotalMinutes` | Integer 0–10080. Matches `prepTimeMinutes + cookTimeMinutes`. |
+| `maxTotalMinutes` | Integer 0–10080. Matches `prepTimeMinutes + cookTimeMinutes + additionalTimeMinutes`; unknown totals do not match. |
+| `sort` | `title` (default), `fastest`, or `easiest`. Unknown or repeated values are rejected. |
 | `page` | Integer 1–1000. Default 1. A page past the end is `200` with an empty `items` array. |
 | `pageSize` | Integer 1–50. Default 20. |
 
 Unknown parameters and repeated parameters are `400`. Filtering, search, ordering, and pagination run in PostgreSQL. The API does not load the catalog and then filter it in process.
 
 The list response is `{ items, page, pageSize, total, pageCount }`. `total` counts every visible recipe matching the filters, not only the current page. `pageCount` is `0` when `total` is `0`, and otherwise `ceil(total / pageSize)`. Items are ordered by the lowercase selected title, then by `slug`. The slug is unique, so the order does not change between requests. A list item is a summary: it has no ingredient lines and no steps.
+
+Sorting happens before pagination. `title` orders by the lowercase title actually
+returned, including whole-document language fallback, then slug. This uses the
+database's existing collation; it does not add Arabic-specific dictionary collation.
+`fastest` orders by total elapsed minutes (including waiting), with unknown totals
+last. Estimated totals remain eligible and retain their estimate markers in the UI.
+`easiest` orders Easy, Medium, Hard, then unknown difficulty. Both use selected
+title and slug to break ties. Sort does not change filter or visibility rules.
 
 ### Catalog options
 
@@ -56,3 +69,25 @@ Country, cuisine, dietary tag, and ingredient names fall back independently of t
 `GET /recipes/:slug` adds `ingredients` and `steps`, both ordered by `position`. An ingredient line contains `position`, `ingredientSlug`, `name`, `language`, `quantity`, `unit`, `qualitativeAmount`, `optional`, and `note`. A measured `quantity` is a decimal string with exactly three places, such as `"12.500"` or `"200.000"`, never a JSON number. `TO_TASTE` lines return `quantity: null`, `unit: null`, and `qualitativeAmount: "TO_TASTE"`. `optional` preserves `is_optional`. A blank note is returned as `null`. Notes come only from the selected recipe translation.
 
 The unit values are the metric conventions in [prisma/DATA_MODEL.md](prisma/DATA_MODEL.md): `TEASPOON` is 5 milliliters, `TABLESPOON` is 15 milliliters, and `CUP` is the 250 milliliter metric cup. `PIECE` is countable. The response does not repeat that conversion table.
+
+Imported development recipes can now include credited photos, nullable facts, and source measurement strings. See [the development publication contract](src/imports/README.md#limited-development-publication). Trial content is excluded outside `NODE_ENV=development`.
+
+
+### Home collections
+
+`GET /recipes/home?lang=en|ar` accepts the same language-only query rules as recipe
+detail. It returns `{ featured, picks, quick, more }`. Featured/picks use the
+version-controlled slugs in `src/recipes/home-selection.ts`; this is editorial
+selection, not personalized ranking. Every candidate is checked against the same
+public visibility and original-language completeness rules as Discover. A
+REPEATABLE READ transaction builds the whole feed. Quick recipes have a known
+total of at most 30 minutes. Sections exclude already-selected slugs, and missing
+or hidden picks are omitted. More contains up to six additional recipes.
+
+The reviewed development manifest now contains eight imported recipes; the local
+catalog has sixteen recipes total, eight with photos. `recipes:stage:reviewed`
+previews newly reviewed source documents; `-- --apply` stages them only after their
+fingerprints match. `recipes:publish:development -- --apply` publishes missing
+reviewed entries once. Neither command changes existing published recipe content.
+
+Reviewed timing, descriptions, servings and dietary enrichment are documented in [ENRICHMENT.md](src/imports/ENRICHMENT.md), including source evidence, estimate labels, waiting-time semantics and the guarded manual command.

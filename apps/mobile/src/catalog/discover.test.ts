@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   acceptOptionResponse,
+  activeFilterKeys,
+  removeDiscoverFilter,
   acceptPreviewResponse,
   beginBrowse,
+  discoverSelectionFromParams,
   beginOptionRequest,
   canLoadMore,
   completeBrowse,
@@ -44,6 +47,26 @@ const filters: DiscoverFilters = {
   difficulty: 'EASY',
   maxTotalMinutes: 30,
 };
+
+test('removing one active filter preserves search-independent filter choices', () => {
+  assert.equal(activeFilterKeys(filters).length, 5);
+  const next = removeDiscoverFilter(filters, 'country');
+  assert.equal(next.country, null);
+  assert.equal(next.cuisine, 'levantine');
+  assert.equal(activeFilterKeys(next).length, 4);
+  assert.equal(filters.country, 'lebanon');
+  assert.deepEqual(activeFilterKeys(emptyDiscoverFilters()), []);
+});
+
+test('sort queries are applied by the server on every requested page', () => {
+  for (const sort of ['fastest', 'easiest'] as const) {
+    const params = recipeSearchParams({ language: 'ar', query: 'soup', filters, page: 2, sort });
+    assert.equal(params.get('sort'), sort);
+    assert.equal(params.get('page'), '2');
+    assert.equal(params.get('q'), 'soup');
+  }
+  assert.equal(recipeSearchParams({ language: 'en', query: '', filters, page: 1, sort: 'title' }).has('sort'), false);
+});
 
 test('recipe queries use only supported list parameters and reset to page 1', () => {
   const params = recipeSearchParams({
@@ -229,4 +252,14 @@ test('catalog options require a translated label and reject a partial list', () 
   assert.equal(options?.[1]?.fallbackUsed, true);
   assert.equal(readCatalogOptions({ items: [{ slug: 'lebanon', name: 'Lebanon' }] }), null);
   assert.equal(readCatalogOptions({ total: 1 }), null);
+});
+
+test('Home country and browse links replace filters without resetting ordinary back navigation', () => {
+  assert.equal(discoverSelectionFromParams({}), null);
+  const country = discoverSelectionFromParams({ country: 'lebanon', q: '' });
+  assert.deepEqual(country, { query: '', filters: { ...emptyDiscoverFilters(), country: 'lebanon' } });
+  assert.deepEqual(discoverSelectionFromParams({ country: '', q: '  lemon  ' }), { query: 'lemon', filters: emptyDiscoverFilters() });
+  assert.deepEqual(discoverSelectionFromParams({ country: '', q: '' }), { query: '', filters: emptyDiscoverFilters() });
+  assert.equal(discoverSelectionFromParams({ country: ['lebanon'], q: ['bad'] })?.filters.country, null);
+  assert.equal(discoverSelectionFromParams({ country: '../private' })?.filters.country, null);
 });

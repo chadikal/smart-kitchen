@@ -16,6 +16,12 @@ export class RecipesController {
     return this.recipes.list(parseQuery(() => parseRecipeListQuery(query)));
   }
 
+  @Get('home')
+  home(@Query() query: Record<string, unknown>) {
+    const parsed = parseQuery(() => parseRecipeDetailQuery(query));
+    return this.recipes.home(parsed.lang);
+  }
+
   @Get(':slug')
   detail(@Param('slug') slug: string, @Query() query: Record<string, unknown>) {
     const parsed = parseQuery(() => ({

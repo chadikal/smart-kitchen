@@ -5,7 +5,7 @@ import { layoutDirection } from '@/src/i18n/layout';
 
 type PlaceholderScreenProps = {
   title: string;
-  body: string;
+  body?: string;
 };
 
 export function PlaceholderScreen({ title, body }: PlaceholderScreenProps) {
@@ -15,7 +15,7 @@ export function PlaceholderScreen({ title, body }: PlaceholderScreenProps) {
   return (
     <View {...layout.props} style={[styles.container, layout.style]}>
       <AppText role="section">{title}</AppText>
-      <AppText role="body">{body}</AppText>
+      {body ? <AppText role="body">{body}</AppText> : null}
     </View>
   );
 }

@@ -27,7 +27,11 @@
     "test:cov": "node ./scripts/run-jest.cjs --coverage",
     "test:debug": "node ./scripts/run-jest.cjs --runInBand",
     "test:e2e": "node ./scripts/run-jest.cjs --config ./test/jest-e2e.json",
-    "test:db": "node ./scripts/run-jest.cjs --config ./test/jest-db.json --runInBand"
+    "test:db": "node ./scripts/run-jest.cjs --config ./test/jest-db.json --runInBand",
+    "recipes:import:themealdb": "node ./scripts/run-seed.cjs prisma/import-themealdb.ts",
+    "recipes:publish:development": "node ./scripts/run-seed.cjs prisma/publish-themealdb-development.ts",
+    "recipes:stage:reviewed": "node ./scripts/run-seed.cjs prisma/stage-reviewed-recipes.ts",
+    "recipes:enrich:development": "node ./scripts/run-seed.cjs prisma/enrich-recipes-development.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

@@ -1,3 +1,4 @@
+import { homeSelection } from './home-selection';
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -49,19 +50,31 @@ export class RecipesService {
     );
   }
 
-  private async listSnapshot(tx: Prisma.TransactionClient, query: RecipeListQuery): Promise<RecipeListResponse> {
+  private async listSnapshot(tx: Prisma.TransactionClient, query: RecipeListQuery, excluded: string[] = [], verifiedTimesOnly = false): Promise<RecipeListResponse> {
     const title = selectedTitle(toDatabaseLanguage(query.lang));
-    const where = publicConditions(query, title);
+    const where = Prisma.sql`${publicConditions(query, title)}
+      AND ${excluded.length ? Prisma.sql`r.slug NOT IN (${Prisma.join(excluded)})` : Prisma.sql`TRUE`}
+      AND ${verifiedTimesOnly ? Prisma.sql`NOT EXISTS (
+        SELECT 1 FROM recipe_metadata_reviews review WHERE review.recipe_id = r.id
+        AND (review.fields->'prepTimeMinutes'->>'basis' = 'ESTIMATE'
+          OR review.fields->'cookTimeMinutes'->>'basis' = 'ESTIMATE'
+          OR review.fields->'additionalTimeMinutes'->>'basis' = 'ESTIMATE')
+      )` : Prisma.sql`TRUE`}`;
     const totals = await tx.$queryRaw<Array<{ total: unknown }>>(
       Prisma.sql`SELECT CAST(count(*) AS integer) AS total FROM recipes r WHERE ${where}`,
     );
     const total = readCount(totals[0]?.total);
+    const order = query.sort === 'fastest'
+      ? Prisma.sql`(r.prep_time_minutes + r.cook_time_minutes + r.additional_time_minutes) ASC NULLS LAST,`
+      : query.sort === 'easiest'
+        ? Prisma.sql`CASE r.difficulty::text WHEN 'EASY' THEN 0 WHEN 'MEDIUM' THEN 1 WHEN 'HARD' THEN 2 ELSE 3 END,`
+        : Prisma.empty;
     const ids = await tx.$queryRaw<Array<{ id: unknown }>>(
       Prisma.sql`
         SELECT r.id
         FROM recipes r
         WHERE ${where}
-        ORDER BY lower(${title}), r.slug
+        ORDER BY ${order} lower(${title}), r.slug
         LIMIT ${query.pageSize}
         OFFSET ${(query.page - 1) * query.pageSize}
       `,
@@ -87,6 +100,25 @@ export class RecipesService {
       total,
       pageCount: total === 0 ? 0 : Math.ceil(total / query.pageSize),
     };
+  }
+
+  async home(lang: PublicLanguage) {
+    return this.prisma.$transaction(async (tx) => {
+      const selected = async (slugs: readonly string[]) => {
+        const visible = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          SELECT r.id FROM recipes r WHERE ${publicConditions({ lang, page: 1, pageSize: 1 }, Prisma.sql`r.slug`)}
+          AND r.slug IN (${Prisma.join([...slugs])})`);
+        const rows = await tx.recipe.findMany({ where: { id: { in: visible.map((row) => row.id) } }, include: publicRecipeInclude });
+        return slugs.flatMap((slug) => { const row = rows.find((record) => record.slug === slug); return row ? [this.present(row, lang, false)] : []; });
+      };
+      const featured = (await selected(homeSelection.featured))[0] ?? null;
+      const picks = (await selected(homeSelection.picks)).filter((item) => item.slug !== featured?.slug);
+      const used = [...(featured ? [featured.slug] : []), ...picks.map((item) => item.slug)];
+      const quick = (await this.listSnapshot(tx, { lang, maxTotalMinutes: 30, page: 1, pageSize: 3 }, used, true)).items;
+      used.push(...quick.map((item) => item.slug));
+      const more = (await this.listSnapshot(tx, { lang, page: 1, pageSize: 6 }, used)).items;
+      return { featured, picks, quick, more };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async catalog(kind: CatalogKind, lang: PublicLanguage): Promise<CatalogOption[] | CountryOption[]> {
@@ -246,6 +278,7 @@ function publicConditions(
   const conditions: Prisma.Sql[] = [
     Prisma.sql`r.publication_status::text = 'PUBLISHED'`,
     Prisma.sql`r.visibility::text = 'PUBLIC'`,
+    developmentContentCondition(),
     translationIsComplete(Prisma.sql`r.original_language::text`),
   ];
   if (slug) conditions.push(Prisma.sql`r.slug = ${slug}`);
@@ -283,7 +316,7 @@ function publicConditions(
   }
   if (query.maxTotalMinutes !== undefined) {
     conditions.push(
-      Prisma.sql`(r.prep_time_minutes + r.cook_time_minutes) <= ${query.maxTotalMinutes}`,
+      Prisma.sql`(r.prep_time_minutes + r.cook_time_minutes + r.additional_time_minutes) <= ${query.maxTotalMinutes}`,
     );
   }
   return Prisma.join(conditions, ' AND ');
@@ -293,6 +326,7 @@ function catalogIdQuery(kind: CatalogKind): Prisma.Sql {
   const listed = Prisma.sql`
     r.publication_status::text = 'PUBLISHED'
     AND r.visibility::text = 'PUBLIC'
+    AND ${developmentContentCondition()}
     AND ${translationIsComplete(Prisma.sql`r.original_language::text`)}
   `;
   if (kind === 'country') {
@@ -352,4 +386,8 @@ function readCount(value: unknown): number {
 function readId(value: unknown): string {
   if (typeof value === 'string' && value !== '') return value;
   throw new InternalServerErrorException('Recipe content is invalid.');
+}
+
+export function developmentContentCondition(): Prisma.Sql {
+  return process.env.NODE_ENV === "development" ? Prisma.sql`TRUE` : Prisma.sql`r.development_only = false`;
 }

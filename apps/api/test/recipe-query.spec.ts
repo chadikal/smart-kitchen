@@ -55,7 +55,9 @@ describe('recipe query parsing', () => {
       { country: 'Lebanon' },
       { cuisine: 'french-' },
       { dietaryTag: 'a_b' },
-      { sort: 'title' },
+      { sort: 'recommended' },
+      { sort: ['title', 'fastest'] },
+      { sort: 'FASTEST' },
       { page: ['1', '2'] },
     ];
     for (const query of rejected) {
@@ -68,5 +70,11 @@ describe('recipe query parsing', () => {
 
   it('escapes LIKE wildcards', () => {
     expect(escapeLike('100%_\\')).toBe('100\\%\\_\\\\');
+  });
+
+  it('accepts only the three public sort orders', () => {
+    for (const sort of ['title', 'fastest', 'easiest']) {
+      expect(parseRecipeListQuery({ sort }).sort).toBe(sort);
+    }
   });
 });

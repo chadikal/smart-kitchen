@@ -69,30 +69,40 @@ export function DiscoverFiltersSheet({
               <SlidersIcon />
               <AppText role="compactTitle" block={false}>{t('discover.filters')}</AppText>
             </View>
-            <Pressable accessibilityRole="button" onPress={() => { closePicker(); onReset(); }}>
-              <AppText role="meta" block={false} color={colors.sage}>{t('discover.resetAll')}</AppText>
-            </Pressable>
+            <View style={[styles.headingLabel, layout.style]}>
+              <Pressable style={styles.close} accessibilityRole="button" onPress={() => { closePicker(); onReset(); }}>
+                <AppText role="meta" block={false} color={colors.sage}>{t('discover.resetAll')}</AppText>
+              </Pressable>
+              <Pressable style={styles.close} accessibilityRole="button" accessibilityLabel={t('discover.close')} onPress={onClose}>
+                <AppText role="body" block={false}>×</AppText>
+              </Pressable>
+            </View>
           </View>
           {picker ? (
-            <OptionList
-              label={t(labelKey(picker))}
-              selected={selectedSlug(draft, picker)}
-              anyLabel={t(anyKey(picker))}
-              options={optionsFor(picker, countries, cuisines, dietaryTags, t)}
-              onRetry={onRetryOptions}
-              onSelect={(slug) => {
-                onChange(applySelection(draft, picker, slug));
-                closePicker();
-              }}
-            />
+            <View style={styles.picker}>
+              <Pressable style={styles.close} accessibilityRole="button" onPress={closePicker}>
+                <AppText role="meta" color={colors.sage}>{t('discover.backToFilters')}</AppText>
+              </Pressable>
+              <OptionList
+                label={t(labelKey(picker))}
+                selected={selectedSlug(draft, picker)}
+                anyLabel={t(anyKey(picker))}
+                options={optionsFor(picker, countries, cuisines, dietaryTags, t)}
+                onRetry={onRetryOptions}
+                onSelect={(slug) => {
+                  onChange(applySelection(draft, picker, slug));
+                  closePicker();
+                }}
+              />
+            </View>
           ) : (
-            <View style={styles.grid}>
+            <ScrollView style={styles.optionScroll} contentContainerStyle={styles.grid}>
               <Field label={t('discover.country')} value={labelFor(draft.country, countries, t('discover.anyCountry'))} selected={draft.country !== null} onPress={() => setPicker('country')} />
               <Field label={t('discover.cuisine')} value={labelFor(draft.cuisine, cuisines, t('discover.anyCuisine'))} selected={draft.cuisine !== null} onPress={() => setPicker('cuisine')} />
               <Field label={t('discover.dietary')} value={labelFor(draft.dietaryTag, dietaryTags, t('discover.anyDietary'))} selected={draft.dietaryTag !== null} onPress={() => setPicker('dietaryTag')} />
               <Field label={t('discover.difficulty')} value={draft.difficulty ? t(`home.difficulty.${draft.difficulty}`) : t('discover.anyDifficulty')} selected={draft.difficulty !== null} onPress={() => setPicker('difficulty')} />
               <Field label={t('discover.time')} value={draft.maxTotalMinutes === null ? t('discover.anyTime') : t('discover.minutesOrLess', { count: draft.maxTotalMinutes })} selected={draft.maxTotalMinutes !== null} onPress={() => setPicker('time')} />
-            </View>
+            </ScrollView>
           )}
           <Pressable accessibilityRole="button" onPress={onApply} style={styles.apply}>
             <AppText role="compactTitle" block={false} color={colors.card}>
@@ -235,6 +245,8 @@ function applySelection(filters: DiscoverFilters, picker: Exclude<Picker, null>,
 }
 
 const styles = StyleSheet.create({
+  close: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
+  picker: { gap: 8 },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

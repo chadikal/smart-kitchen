@@ -3,6 +3,13 @@ export const supportedLanguages = ['en', 'ar'] as const;
 export type AppLanguage = (typeof supportedLanguages)[number];
 export type LayoutDirection = 'ltr' | 'rtl';
 
+/** Localize display digits without parsing or rounding decimal quantities. */
+export function localizeDigits(value: string | number, language: AppLanguage): string {
+  const text = String(value);
+  if (language !== 'ar') return text;
+  return text.replace(/[0-9]/g, (digit) => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]!);
+}
+
 export function resolveLanguage(
   languageCode: string | null | undefined,
 ): AppLanguage {

@@ -5,6 +5,6 @@ export default function KitchenScreen() {
   const { t } = useTranslation();
 
   return (
-    <PlaceholderScreen title={t('kitchen.title')} body={t('kitchen.body')} />
+    <PlaceholderScreen title={t('kitchen.title')} />
   );
 }

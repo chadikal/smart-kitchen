@@ -1,6 +1,23 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { directionFor, resolveLanguage, textAlignFor } from './languages.ts';
+import { directionFor, localizeDigits, resolveLanguage, textAlignFor } from './languages.ts';
+
+describe('localizeDigits', () => {
+  it('uses Arabic digits for amounts, times, servings, and steps', () => {
+    assert.equal(localizeDigits('1200 غ · 95 د · 4 · 123', 'ar'), '١٢٠٠ غ · ٩٥ د · ٤ · ١٢٣');
+    assert.equal(localizeDigits(0, 'ar'), '٠');
+  });
+
+  it('preserves exact decimal digits and existing Arabic numerals', () => {
+    assert.equal(localizeDigits('1.005', 'ar'), '١.٠٠٥');
+    assert.equal(localizeDigits('999999999999999999.001', 'ar'), '٩٩٩٩٩٩٩٩٩٩٩٩٩٩٩٩٩٩.٠٠١');
+    assert.equal(localizeDigits('٢٠٠ درجة', 'ar'), '٢٠٠ درجة');
+  });
+
+  it('leaves English display unchanged', () => {
+    assert.equal(localizeDigits('1200 g · 1.005 · 95 min', 'en'), '1200 g · 1.005 · 95 min');
+  });
+});
 
 describe('resolveLanguage', () => {
   it('selects Arabic for Arabic language codes', () => {

@@ -1,21 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import SlidersIcon from '@/assets/brand/sliders-horizontal.svg';
+import CloseIcon from '@/assets/brand/x.svg';
 import { AppText } from '@/components/AppText';
 import { DiscoverFiltersSheet } from '@/components/DiscoverFilters';
+import { DiscoverSortSheet } from '@/components/DiscoverSort';
 import { RecipeCard } from '@/components/RecipeCard';
 import { Screen } from '@/components/Screen';
 import { SearchField } from '@/components/SearchField';
 import { apiBaseUrl } from '@/src/config/api';
-import { readLiveRecipeList, type LiveRecipeCard } from '@/src/catalog/live-recipes';
+import { recipeFactsText, readLiveRecipeList, type LiveRecipeCard } from '@/src/catalog/live-recipes';
 import {
   acceptOptionResponse,
+  activeFilterKeys,
   acceptPreviewResponse,
   beginOptionRequest,
   canLoadMore,
   completeBrowse,
   emptyDiscoverFilters,
+  discoverSelectionFromParams,
   filtersAreActive,
   initialBrowseState,
   isAbortError,
@@ -27,6 +32,8 @@ import {
   recipeSearchParams,
   responseStillCurrent,
   retainNewerBrowse,
+  removeDiscoverFilter,
+  type DiscoverSort,
   type BrowseKind,
   type BrowseState,
   type CatalogOption,
@@ -41,6 +48,8 @@ type OptionState = CatalogOption[] | 'loading' | 'error';
 
 export default function DiscoverScreen() {
   const { t } = useTranslation();
+  const params = useLocalSearchParams<{ country?: string; q?: string }>();
+  const router = useRouter();
   const { language, direction } = useAppLanguage();
   const layout = layoutDirection(direction);
   const [query, setQuery] = useState('');
@@ -48,6 +57,8 @@ export default function DiscoverScreen() {
   const [filters, setFilters] = useState<DiscoverFilters>(emptyDiscoverFilters);
   const [draft, setDraft] = useState<DiscoverFilters>(emptyDiscoverFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sort, setSort] = useState<DiscoverSort>('title');
+  const [sortOpen, setSortOpen] = useState(false);
   const [browse, setBrowse] = useState<BrowseState>(initialBrowseState);
   const [countries, setCountries] = useState<OptionState>('loading');
   const [cuisines, setCuisines] = useState<OptionState>('loading');
@@ -59,6 +70,22 @@ export default function DiscoverScreen() {
   const optionRequest = useRef<OptionRequest | null>(null);
   const previewAbort = useRef<AbortController | null>(null);
   const previewRequest = useRef(0);
+
+  useEffect(() => {
+    const selection = discoverSelectionFromParams({ country: params.country, q: params.q });
+    if (!selection) return;
+    const timer = setTimeout(() => {
+      setQuery(selection.query);
+      setCommittedQuery(selection.query);
+      setFilters(selection.filters);
+      setDraft(selection.filters);
+      setFiltersOpen(false);
+      setSort('title');
+      // Consume navigation-only parameters so returning from details preserves edits.
+      router.setParams({ country: undefined, q: undefined });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [params.country, params.q, router]);
 
   useEffect(() => {
     const timer = setTimeout(() => setCommittedQuery(query.trim()), 300);
@@ -109,7 +136,7 @@ export default function DiscoverScreen() {
     browseAbort.current = controller;
     const requestId = planned.requestId;
     publishBrowse(planned);
-    void readJson(recipeUrl(language, committedQuery, filters, page), controller.signal)
+    void readJson(recipeUrl(language, committedQuery, filters, page, sort), controller.signal)
       .then((body) => {
         if (!responseStillCurrent(browseRef.current.requestId, requestId, controller.signal.aborted)) return;
         const result = body ? readLiveRecipeList(body) : { ok: false as const };
@@ -120,7 +147,7 @@ export default function DiscoverScreen() {
         if (!responseStillCurrent(browseRef.current.requestId, requestId, controller.signal.aborted)) return;
         publishBrowse(completeBrowse(browseRef.current, { requestId, kind, page, result: { ok: false } }));
       });
-  }, [committedQuery, filters, language, publishBrowse]);
+  }, [committedQuery, filters, language, sort, publishBrowse]);
 
   useEffect(() => {
     const timer = setTimeout(() => loadOptions(), 0);
@@ -193,16 +220,48 @@ export default function DiscoverScreen() {
     setFiltersOpen(false);
   }
 
-  const countryName = optionName(countries, filters.country);
-  const timeLabel =
-    filters.maxTotalMinutes === null
-      ? t('discover.anyTime')
-      : t('discover.minutesOrLess', { count: filters.maxTotalMinutes });
+  const activeKeys = activeFilterKeys(filters);
+  function filterLabel(key: keyof DiscoverFilters): string {
+    if (key === 'difficulty') return t(`home.difficulty.${filters.difficulty}`);
+    if (key === 'maxTotalMinutes') return t('discover.minutesOrLess', { count: filters.maxTotalMinutes });
+    const options = key === 'country' ? countries : key === 'cuisine' ? cuisines : dietaryTags;
+    return optionName(options, filters[key]) ?? t(key === 'dietaryTag' ? 'discover.dietary' : `discover.${key}`);
+  }
   const refreshing = browse.status === 'refreshing';
 
   return (
     <Screen
       includeTopInset
+      scrollHeader={<AppText role="section" accessibilityRole="header">{t('discover.heading')}</AppText>}
+      scrollToTopLabel={t('discover.backToTop')}
+      stickyHeader={
+        <View style={styles.header}>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            label={t('discover.searchLabel')}
+            placeholder={t('discover.searchPlaceholder')}
+            clearLabel={t('discover.clearSearch')}
+            onClear={() => setQuery('')}
+          />
+          <View {...layout.props} style={[styles.toolbar, layout.style]}>
+            <View style={styles.count}>
+              <AppText role="meta" color={colors.muted}>
+                {browse.status === 'loading' ? t('discover.loading') : browse.status === 'error' && browse.items.length === 0 ? '' : t('discover.results', { count: browse.total })}
+              </AppText>
+            </View>
+            <Chip label={t('discover.sortLabel', { value: t(`discover.sortOptions.${sort}`) })} expanded={sortOpen} onPress={() => setSortOpen(true)} />
+            <Chip label={activeKeys.length ? t('discover.filtersCount', { count: activeKeys.length }) : t('discover.filters')} icon selected={activeKeys.length > 0} expanded={filtersOpen} onPress={openFilters} />
+          </View>
+          {activeKeys.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} {...layout.props} style={layout.style} contentContainerStyle={[styles.chips, layout.style]}>
+              {activeKeys.map((key) => (
+                <Chip key={key} label={filterLabel(key)} removable selected accessibilityLabel={t('discover.removeFilter', { value: filterLabel(key) })} onPress={() => setFilters((current) => removeDiscoverFilter(current, key))} />
+              ))}
+            </ScrollView>
+          ) : null}
+        </View>
+      }
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -214,33 +273,6 @@ export default function DiscoverScreen() {
         />
       }
     >
-      <View style={styles.intro}>
-        <AppText role="eyebrow" color={colors.sage}>{t('discover.eyebrow')}</AppText>
-        <AppText role="display">{t('discover.heading')}</AppText>
-        <AppText role="body" color={colors.muted}>{t('discover.subtitle')}</AppText>
-      </View>
-      <SearchField
-        value={query}
-        onChangeText={setQuery}
-        label={t('discover.searchLabel')}
-        placeholder={t('discover.searchPlaceholder')}
-        clearLabel={t('discover.clearSearch')}
-        onClear={() => setQuery('')}
-      />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        {...layout.props}
-        style={layout.style}
-        contentContainerStyle={[styles.chips, layout.style]}
-      >
-        <Chip label={t('discover.filters')} icon selected expanded={filtersOpen} onPress={openFilters} />
-        <Chip label={countryName ?? t('discover.allCountries')} onPress={openFilters} />
-        <Chip label={timeLabel} onPress={openFilters} />
-        {filters.cuisine ? <Chip label={optionName(cuisines, filters.cuisine) ?? filters.cuisine} onPress={openFilters} /> : null}
-        {filters.dietaryTag ? <Chip label={optionName(dietaryTags, filters.dietaryTag) ?? filters.dietaryTag} onPress={openFilters} /> : null}
-        {filters.difficulty ? <Chip label={t(`home.difficulty.${filters.difficulty}`)} onPress={openFilters} /> : null}
-      </ScrollView>
       {browse.status === 'error' && browse.items.length > 0 ? (
         <Retry label={t('discover.unavailable')} action={t('discover.retry')} onPress={() => startBrowse('refresh', 1)} />
       ) : null}
@@ -260,11 +292,13 @@ export default function DiscoverScreen() {
       ) : null}
       {browse.items.length > 0 ? (
         <View style={styles.results}>
-          <AppText role="compactTitle">{t('discover.results', { count: browse.total })}</AppText>
           {browse.items.map((item) => (
             <RecipeCard
               key={item.slug}
-              variant="compact"
+              slug={item.slug}
+              contentLanguage={item.contentLanguage}
+              photo={item.photo}
+              variant="browse"
               title={item.title}
               detail={recipeDetail(item, t)}
               note={recipeNote(item, t)}
@@ -301,6 +335,7 @@ export default function DiscoverScreen() {
         onClose={() => setFiltersOpen(false)}
         onRetryOptions={loadOptions}
       />
+      <DiscoverSortSheet visible={sortOpen} value={sort} onSelect={setSort} onClose={() => setSortOpen(false)} />
     </Screen>
   );
 }
@@ -310,12 +345,16 @@ function Chip({
   selected,
   icon,
   expanded,
+  removable,
+  accessibilityLabel,
   onPress,
 }: {
   label: string;
   selected?: boolean;
   icon?: boolean;
   expanded?: boolean;
+  removable?: boolean;
+  accessibilityLabel?: string;
   onPress: () => void;
 }) {
   const { direction } = useAppLanguage();
@@ -323,6 +362,7 @@ function Chip({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={expanded === undefined ? undefined : { expanded }}
       aria-expanded={expanded}
       onPress={onPress}
@@ -330,7 +370,8 @@ function Chip({
       {...layout.props}
     >
       {icon ? <SlidersIcon /> : null}
-      <AppText role="meta" block={false}>{label}</AppText>
+      <AppText role="meta" block={false} style={styles.chipLabel}>{label}</AppText>
+      {removable ? <CloseIcon width={12} height={12} /> : null}
     </Pressable>
   );
 }
@@ -346,8 +387,8 @@ function Retry({ label, action, onPress }: { label: string; action: string; onPr
   );
 }
 
-function recipeUrl(language: 'en' | 'ar', query: string, filters: DiscoverFilters, page: number): string {
-  return `${apiBaseUrl}/recipes?${recipeSearchParams({ language, query, filters, page }).toString()}`;
+function recipeUrl(language: 'en' | 'ar', query: string, filters: DiscoverFilters, page: number, sort: DiscoverSort): string {
+  return `${apiBaseUrl}/recipes?${recipeSearchParams({ language, query, filters, page, sort }).toString()}`;
 }
 
 async function readJson(url: string, signal: AbortSignal): Promise<unknown | null> {
@@ -367,43 +408,46 @@ function optionName(options: OptionState, slug: string | null): string | null {
 }
 
 function recipeDetail(item: LiveRecipeCard, t: (key: string, values?: Record<string, unknown>) => string): string {
-  const detail = t('home.detail', {
-    minutes: item.totalTimeMinutes,
-    difficulty: t(`home.difficulty.${item.difficulty}`),
-  });
-  return item.kicker.length > 0 ? `${item.kicker} · ${detail}` : detail;
+  const detail = recipeFactsText(item, t);
+  return [item.kicker, detail].filter(Boolean).join(' · ');
 }
 
 function recipeNote(item: LiveRecipeCard, t: (key: string, values?: Record<string, unknown>) => string): string | undefined {
-  const dietary = item.dietaryNames.join(' · ');
+  const dietary = item.dietaryNames.slice(0, 2).join(' · ');
   const fallback = item.fallback ? t(`discover.fallback.${item.contentLanguage}`) : '';
   const note = [dietary, fallback].filter((part) => part.length > 0).join('\n');
   return note.length > 0 ? note : undefined;
 }
 
 const styles = StyleSheet.create({
-  intro: {
+  header: {
     width: '100%',
-    gap: 6,
+    gap: 12,
   },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  count: { flexGrow: 1, flexShrink: 1, minWidth: 90 },
   chips: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#D1D6C2',
-    borderRadius: 16,
-    backgroundColor: '#FEF9F0',
+    paddingVertical: 2,
   },
   chip: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     borderRadius: radii.pill,
     paddingHorizontal: 11,
     paddingVertical: 7,
+  },
+  chipLabel: {
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    // Let the Arabic font use its own ascent/descent instead of the paragraph line height.
+    lineHeight: undefined,
   },
   chipSelected: {
     backgroundColor: colors.sageWash,

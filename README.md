@@ -121,7 +121,40 @@ apps/api      NestJS API, Prisma, and PostgreSQL configuration
 
 Shared TypeScript strictness lives in `tsconfig.base.json`. The mobile app extends Expo's base config and repeats those strict flags. The API extends `tsconfig.base.json` and keeps Nest's CommonJS compiler options, including `strictPropertyInitialization` disabled for dependency injection.
 
-## Versions
+## Planned UI/UX direction
+
+Recorded on October 24, 2026 for future development milestones. These are planned technology and design decisions, not a statement that the libraries are installed or integrated. UI implementation and screen redesign are deferred.
+
+### Planned technologies
+
+- **gluestack-ui:** Planned primary component library for React Native and Expo.
+- **NativeWind:** Planned Tailwind-style styling for React Native.
+- **React Native Reanimated:** Planned animations, transitions, and interactive effects.
+- **Custom SVG illustrations and assets:** Hand-drawn borders, food illustrations, decorative elements, and paper-style components.
+- **Tamagui:** Alternative to evaluate later if a shared component system across mobile and web becomes necessary; not an additional component library to adopt by default.
+
+### Design direction
+
+Smart Kitchen should have a playful, hand-drawn, paper-cartoon aesthetic inspired by illustrated cookbooks, recipe journals, and scrapbooks:
+
+- Warm cream and paper-textured backgrounds.
+- Soft greens, warm browns, and tomato-red accents.
+- Hand-drawn illustrations and icons.
+- Slightly irregular borders and rounded recipe cards.
+- Handwritten-style typography for headings.
+- Subtle animations and page-turning effects.
+- Clean, readable layouts with good accessibility.
+- Full English and Arabic support, including right-to-left (RTL) layouts.
+
+### Implementation guardrails
+
+- At the UI implementation milestone, evaluate compatibility with the existing Expo setup and recommend the best integration approach before adopting the planned stack.
+- Account for the existing React Native Paper components when evaluating integration or migration.
+- Preserve existing functionality, navigation, localization, and RTL behavior.
+- Avoid unnecessary dependencies; add libraries only when their role and compatibility are established.
+- Carry these decisions forward into future milestones. This documentation update does not authorize library installation, code changes, or screen redesign.
+
+## Current versions
 
 - Expo SDK 58, React Native 0.88, React 19.3
 - Expo Router and React Native Paper
@@ -133,8 +166,8 @@ Prisma ORM 8 was still a release candidate when this foundation was created, so 
 
 ## Home UI milestone
 
-The Home screen uses cookbook styling, local fonts and illustrations, preview recipes, and a separate live API section. The language selector was rebuilt, and Arabic text alignment was verified on an iPhone 11 with in-session English/Arabic switching. Mobile lint, typecheck, and 13 tests pass; web export and exported-site interaction were also verified during this milestone.
+The Home screen uses cookbook styling, local fonts and illustrations, live public recipe cards and country browsing. The language selector was rebuilt, and Arabic text alignment was verified on an iPhone 11 with in-session English/Arabic switching. Mobile lint, typecheck, and 13 tests pass; web export and exported-site interaction were also verified during this milestone.
 
 ## Discover milestone
 
-Savora Discover browses live API recipes with title search, country/cuisine/dietary filters, difficulty and maximum cooking time, pagination, refresh, and retry states. English and Arabic RTL and the live API connection were confirmed on an iPhone. Home retains labeled preview content. Recipe detail navigation is the next milestone.
+Savora Discover browses live API recipes with title search, country/cuisine/dietary filters, difficulty and maximum cooking time, pagination, refresh, and retry states. English and Arabic RTL and the live API connection were confirmed on an iPhone. Home now uses the same live public catalog: recipe cards open details, country cards open filtered Discover, and the guest control opens Profile. Recipe detail navigation is the next milestone.

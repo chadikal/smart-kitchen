@@ -20,9 +20,11 @@ const listParameters = new Set([
   'maxTotalMinutes',
   'page',
   'pageSize',
+  'sort',
 ]);
 
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
+export type RecipeSort = 'title' | 'fastest' | 'easiest';
 
 export interface RecipeListQuery {
   lang: PublicLanguage;
@@ -34,6 +36,7 @@ export interface RecipeListQuery {
   maxTotalMinutes?: number;
   page: number;
   pageSize: number;
+  sort?: RecipeSort;
 }
 
 export class RecipeQueryError extends Error {
@@ -58,6 +61,13 @@ export function parseRecipeListQuery(query: Record<string, unknown>): RecipeList
     ),
   };
   const q = optionalString(query, 'q');
+  const sort = optionalString(query, 'sort');
+  if (sort !== undefined) {
+    if (sort !== 'title' && sort !== 'fastest' && sort !== 'easiest') {
+      throw new RecipeQueryError('Invalid query parameter: sort.');
+    }
+    parsed.sort = sort;
+  }
   if (q !== undefined) {
     const trimmed = q.trim();
     if (trimmed.length < 1 || trimmed.length > maxQueryLength) {

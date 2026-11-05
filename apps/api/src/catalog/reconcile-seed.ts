@@ -410,10 +410,10 @@ function storedRecipe(row: {
   originalLanguage: string;
   publicationStatus: string;
   visibility: string;
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  servings: number;
-  difficulty: string;
+  prepTimeMinutes: number | null;
+  cookTimeMinutes: number | null;
+  servings: number | null;
+  difficulty: string | null;
   translations: Array<{ language: string; title: string; description: string }>;
   steps: Array<{
     position: number;

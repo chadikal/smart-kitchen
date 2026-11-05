@@ -60,6 +60,7 @@ function LocalizedApp() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="recipe/[slug]" options={{ headerShown: false }} />
           </Stack>
         </LocaleProvider>
       </PaperProvider>

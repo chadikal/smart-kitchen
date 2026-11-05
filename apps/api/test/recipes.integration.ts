@@ -150,6 +150,7 @@ describe('public recipe API', () => {
         ingredientSlug: `${prefix}flour`,
         name: 'Flour',
         language: 'en',
+        sourceMeasure: null,
         quantity: '12.500',
         unit: 'GRAM',
         qualitativeAmount: null,
@@ -161,6 +162,7 @@ describe('public recipe API', () => {
         ingredientSlug: `${prefix}salt`,
         name: 'Salt',
         language: 'en',
+        sourceMeasure: null,
         quantity: null,
         unit: null,
         qualitativeAmount: 'TO_TASTE',
@@ -172,6 +174,7 @@ describe('public recipe API', () => {
         ingredientSlug: `${prefix}parsley`,
         name: 'Parsley',
         language: 'en',
+        sourceMeasure: null,
         quantity: '2.000',
         unit: 'PIECE',
         qualitativeAmount: null,
@@ -360,7 +363,8 @@ describe('public recipe API', () => {
       { path: '/recipes', query: { q: '   ' }, field: 'q' },
       { path: '/recipes', query: { country: 'Lebanon' }, field: 'country' },
       { path: '/recipes', query: { dietaryTag: 'a_b' }, field: 'dietaryTag' },
-      { path: '/recipes', query: { sort: 'title' }, field: 'sort' },
+      { path: '/recipes', query: { sort: 'recommended' }, field: 'sort' },
+      { path: '/recipes', query: { sort: ['title', 'fastest'] }, field: 'sort' },
       { path: '/recipes', query: { page: ['1', '2'] }, field: 'page' },
       { path: `/recipes/${prefix}public`, query: { ownerId: '1' }, field: 'ownerId' },
       { path: '/recipes/Not-A-Slug', field: 'slug' },
@@ -374,6 +378,39 @@ describe('public recipe API', () => {
 
   it('keeps the health route independent of recipe queries', async () => {
     await request(server).get('/health').expect(200).expect({ status: 'ok' });
+  });
+
+  it('sorts before pagination with waiting time, nulls last, translated title ties and public visibility', async () => {
+    const cuisineId = await catalog('cuisine', `${prefix}sort`, 'Sort fixtures');
+    const rows = [
+      { suffix: 'a', title: 'Alpha', arabic: 'Zulu', prep: 5, cook: 5, rest: 30, difficulty: 'HARD' as const },
+      { suffix: 'b', title: 'Bravo', arabic: 'Yankee', prep: 5, cook: 5, rest: 0, difficulty: 'MEDIUM' as const },
+      { suffix: 'c', title: 'Charlie', arabic: 'Alpha', prep: 5, cook: 5, rest: 0, difficulty: 'EASY' as const },
+      { suffix: 'd', title: 'Delta', arabic: 'Beta', prep: null, cook: 5, rest: 0, difficulty: null },
+      { suffix: 'e', title: 'Echo', arabic: 'Gamma', prep: 5, cook: 5, rest: null, difficulty: 'EASY' as const },
+    ];
+    for (const row of rows) {
+      const id = await recipe({ slug: `${prefix}sort-${row.suffix}`, title: row.title, cuisineIds: [cuisineId], arabic: { title: row.arabic } });
+      await prisma.recipe.update({ where: { id }, data: { prepTimeMinutes: row.prep, cookTimeMinutes: row.cook, additionalTimeMinutes: row.rest, difficulty: row.difficulty } });
+    }
+    await recipe({ slug: `${prefix}sort-hidden`, title: 'AAA hidden', cuisineIds: [cuisineId], visibility: 'PRIVATE' });
+    await recipe({ slug: `${prefix}sort-draft`, title: 'AAA draft', cuisineIds: [cuisineId], publicationStatus: 'DRAFT' });
+    const readPages = async (sort: string, lang = 'en') => {
+      const slugs: string[] = [];
+      for (let page = 1; page <= 3; page++) {
+        const response = await request(server).get('/recipes').query({ cuisine: `${prefix}sort`, sort, lang, page, pageSize: 2 }).expect(200);
+        expect(response.body.total).toBe(5);
+        slugs.push(...response.body.items.map((item: { slug: string }) => item.slug.replace(`${prefix}sort-`, '')));
+      }
+      return slugs;
+    };
+    expect(await readPages('title')).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(await readPages('fastest')).toEqual(['b', 'c', 'a', 'd', 'e']);
+    expect(await readPages('easiest')).toEqual(['c', 'e', 'b', 'a', 'd']);
+    expect(await readPages('title', 'ar')).toEqual(['c', 'd', 'e', 'b', 'a']);
+    expect(await readPages('fastest', 'ar')).toEqual(['c', 'b', 'a', 'd', 'e']);
+    const filtered = await request(server).get('/recipes').query({ cuisine: `${prefix}sort`, sort: 'fastest', maxTotalMinutes: 10 }).expect(200);
+    expect(filtered.body.items.map((item: { title: string }) => item.title)).toEqual(['Bravo', 'Charlie']);
   });
 });
 

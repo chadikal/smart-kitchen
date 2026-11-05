@@ -9,6 +9,8 @@ import {
 } from './recipe-language';
 
 export const publicRecipeInclude = {
+  importedFrom: true,
+  metadataReview: true,
   translations: true,
   steps: {
     orderBy: { position: 'asc' as const },
@@ -48,11 +50,16 @@ export interface RecipeSummary {
   contentLanguage: PublicLanguage;
   fallbackUsed: boolean;
   originalLanguage: PublicLanguage;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  totalTimeMinutes: number;
-  servings: number;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | null;
+  prepTimeMinutes: number | null;
+  cookTimeMinutes: number | null;
+  totalTimeMinutes: number | null;
+  additionalTimeMinutes: number | null;
+  factSources: Record<string, string>;
+  timingNote: string | null;
+  servings: number | null;
+  photo: { url: string; attribution: string; sourceUrl: string } | null;
+  source: { name: string; url: string; originalUrl: string | null; developmentOnly: boolean } | null;
   countries: CountryLabel[];
   cuisines: CatalogLabel[];
   dietaryTags: CatalogLabel[];
@@ -63,6 +70,7 @@ export interface IngredientLine {
   ingredientSlug: string;
   name: string;
   language: PublicLanguage;
+  sourceMeasure: string | null;
   quantity: string | null;
   unit:
     | 'MILLIGRAM'
@@ -148,7 +156,12 @@ export function mapPublicRecipe(
     difficulty: recipe.difficulty,
     prepTimeMinutes: recipe.prepTimeMinutes,
     cookTimeMinutes: recipe.cookTimeMinutes,
-    totalTimeMinutes: recipe.prepTimeMinutes + recipe.cookTimeMinutes,
+    totalTimeMinutes: recipe.prepTimeMinutes === null || recipe.cookTimeMinutes === null || recipe.additionalTimeMinutes === null ? null : recipe.prepTimeMinutes + recipe.cookTimeMinutes + recipe.additionalTimeMinutes,
+    photo: recipe.importedFrom?.imageUrl ? { url: recipe.importedFrom.imageUrl, attribution: "TheMealDB", sourceUrl: `https://www.themealdb.com/meal/${recipe.importedFrom.externalId}` } : null,
+    source: recipe.importedFrom ? { name: "TheMealDB", url: `https://www.themealdb.com/meal/${recipe.importedFrom.externalId}`, originalUrl: recipe.importedFrom.sourceUrl ?? reviewedSourceUrl(recipe.metadataReview?.fields), developmentOnly: recipe.developmentOnly } : null,
+    additionalTimeMinutes: recipe.additionalTimeMinutes,
+    factSources: publicFactSources(recipe.metadataReview?.fields),
+    timingNote: recipe.metadataReview?.timingNote ?? null,
     servings: recipe.servings,
     countries: bySlug(
       recipe.countries.flatMap((link) => {
@@ -212,6 +225,7 @@ export function mapPublicRecipe(
           ingredientSlug: line.ingredient.slug,
           name: label.name,
           language: toPublicLanguage(label.language),
+          sourceMeasure: line.sourceMeasure,
           quantity: formatQuantity(line.quantity),
           unit: line.unit,
           qualitativeAmount: line.qualitativeAmount,
@@ -254,4 +268,32 @@ function catalogName(
 
 function bySlug<T extends { slug: string }>(items: T[]): T[] {
   return [...items].sort((left, right) => (left.slug < right.slug ? -1 : left.slug > right.slug ? 1 : 0));
+}
+
+function publicFactSources(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const result: Record<string, string> = {};
+  for (const [key, field] of Object.entries(value)) {
+    if (field && typeof field === 'object' && 'basis' in field && typeof field.basis === 'string') result[key] = field.basis;
+  }
+  const timeKeys = ['prepTimeMinutes', 'cookTimeMinutes', 'additionalTimeMinutes'];
+  if (timeKeys.some((key) => result[key] === 'UNKNOWN')) result.totalTimeMinutes = 'UNKNOWN';
+  else if (timeKeys.some((key) => result[key] === 'ESTIMATE')) result.totalTimeMinutes = 'ESTIMATE';
+  else if (timeKeys.every((key) => result[key] === 'SOURCE')) result.totalTimeMinutes = 'SOURCE';
+  return result;
+}
+
+function reviewedSourceUrl(fields: unknown): string | null {
+  if (!fields || typeof fields !== 'object') return null;
+  for (const key of ['servings', 'prepTimeMinutes', 'cookTimeMinutes']) {
+    const value: unknown = (fields as Record<string, unknown>)[key];
+    if (!value || typeof value !== 'object') continue;
+    const field = value as Record<string, unknown>;
+    if (field.basis !== 'SOURCE' || typeof field.sourceUrl !== 'string') continue;
+    try {
+      const url = new URL(field.sourceUrl);
+      if (['https:', 'http:'].includes(url.protocol) && !url.username && !url.password && !['www.themealdb.com', 'themealdb.com'].includes(url.hostname)) return url.href;
+    } catch { /* Ignore invalid review links. */ }
+  }
+  return null;
 }

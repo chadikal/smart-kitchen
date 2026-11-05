@@ -1,46 +1,50 @@
 import type { ReactNode } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/AppText';
-import type { SampleCountryCard } from '@/src/catalog/sample-recipes';
+import { Link } from 'expo-router';
+import FranceArt from '@/assets/brand/france.svg';
+import LebanonArt from '@/assets/brand/lebanon.svg';
+import MexicoArt from '@/assets/brand/mexico.svg';
+import ItalyArt from '@/assets/brand/italy.svg';
+import JapanArt from '@/assets/brand/japan.svg';
+import CookingPotIcon from '@/assets/brand/cooking-pot.svg';
+import type { CatalogOption } from '@/src/catalog/discover';
 import { useAppLanguage } from '@/src/i18n/language-provider';
 import { layoutDirection } from '@/src/i18n/layout';
 import { colors, radii } from '@/src/theme/tokens';
 
-const artwork = {
-  italy: require('../assets/brand/italy.png'),
-  japan: require('../assets/brand/japan.png'),
-} as const;
+// Representative foods, rather than flags or claims of exclusive origin.
+const artwork = new Map<string, ReactNode>([
+  ['france', <FranceArt key="france" />], // baguette
+  ['italy', <ItalyArt key="italy" />], // penne with tomato and basil
+  ['japan', <JapanArt key="japan" />], // salmon nigiri
+  ['lebanon', <LebanonArt key="lebanon" />], // hummus
+  ['mexico', <MexicoArt key="mexico" />], // taco
+]);
 
 const washes = [colors.blush, colors.sand, colors.sageWash] as const;
 
 type CountryCardProps = {
-  country: SampleCountryCard;
+  country: CatalogOption;
   countLabel: string;
   index: number;
 };
 
 export function CountryCard({ country, countLabel, index }: CountryCardProps) {
-  const image = country.slug === 'italy' || country.slug === 'japan' ? artwork[country.slug] : null;
-
   return (
-    <View style={[styles.card, { backgroundColor: washes[index % washes.length] }]}>
-      {image ? (
-        <Image
-          source={image}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          style={styles.art}
-        />
-      ) : (
-        <View style={styles.artSpacer} />
-      )}
-      <AppText role="compactTitle" style={styles.center}>
+    <Link href={{ pathname: '/discover', params: { country: country.slug, q: '' } }} asChild>
+    <Pressable accessibilityRole="link" style={StyleSheet.flatten([styles.card, { backgroundColor: washes[index % washes.length] }])}>
+      <View accessibilityElementsHidden importantForAccessibility="no" style={styles.illustration}>
+        {artwork.get(country.slug) ?? <CookingPotIcon />}
+      </View>
+      <AppText role="compactTitle" contentLanguage={country.language} style={styles.center}>
         {country.name}
       </AppText>
       <AppText role="meta" color={colors.muted} style={styles.center}>
         {countLabel}
       </AppText>
-    </View>
+    </Pressable>
+    </Link>
   );
 }
 
@@ -78,12 +82,11 @@ const styles = StyleSheet.create({
     borderBottomEndRadius: radii.countryBottomEnd,
     borderBottomStartRadius: radii.countryBottomStart,
   },
-  art: {
+  illustration: {
     width: 72,
     height: 52,
-  },
-  artSpacer: {
-    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   center: {
     textAlign: 'center',

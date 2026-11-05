@@ -4,6 +4,9 @@ export const discoverPageSize = 20;
 export const maxMinuteChoices = [15, 30, 45, 60, 120] as const;
 
 export type DiscoverDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
+export type DiscoverSort = 'title' | 'fastest' | 'easiest';
+
+export const discoverSorts: DiscoverSort[] = ['title', 'fastest', 'easiest'];
 
 export type DiscoverFilters = {
   country: string | null;
@@ -52,11 +55,20 @@ export function filtersAreActive(filters: DiscoverFilters): boolean {
   return Object.values(filters).some((value) => value !== null);
 }
 
+export function activeFilterKeys(filters: DiscoverFilters): (keyof DiscoverFilters)[] {
+  return (Object.keys(filters) as (keyof DiscoverFilters)[]).filter((key) => filters[key] !== null);
+}
+
+export function removeDiscoverFilter(filters: DiscoverFilters, key: keyof DiscoverFilters): DiscoverFilters {
+  return { ...filters, [key]: null };
+}
+
 export function recipeSearchParams(input: {
   language: 'en' | 'ar';
   query: string;
   filters: DiscoverFilters;
   page: number;
+  sort?: DiscoverSort;
 }): URLSearchParams {
   const params = new URLSearchParams({
     lang: input.language,
@@ -64,6 +76,7 @@ export function recipeSearchParams(input: {
     pageSize: String(discoverPageSize),
   });
   const query = input.query.trim();
+  if (input.sort && input.sort !== 'title') params.set('sort', input.sort);
   if (query.length > 0) params.set('q', query);
   if (input.filters.country) params.set('country', input.filters.country);
   if (input.filters.cuisine) params.set('cuisine', input.filters.cuisine);
@@ -219,4 +232,16 @@ export function readCatalogOptions(body: unknown): CatalogOption[] | null {
 function mergeCards(current: LiveRecipeCard[], next: LiveRecipeCard[]): LiveRecipeCard[] {
   const seen = new Set(current.map((item) => item.slug));
   return [...current, ...next.filter((item) => !seen.has(item.slug))];
+}
+
+/** Home links replace filters once; ordinary tab/back navigation keeps local state. */
+export function discoverSelectionFromParams(params: { country?: unknown; q?: unknown }): {
+  query: string;
+  filters: DiscoverFilters;
+} | null {
+  if (params.country === undefined && params.q === undefined) return null;
+  const country = typeof params.country === 'string' && params.country.length <= 80 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(params.country)
+    ? params.country : null;
+  const query = typeof params.q === 'string' ? params.q.trim().slice(0, 100) : '';
+  return { query, filters: { ...emptyDiscoverFilters(), country } };
 }

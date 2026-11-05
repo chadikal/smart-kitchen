@@ -63,3 +63,8 @@ Desktop.ini
 *.db
 *.db-journal
 prisma/*.db
+
+# Local Cursor agent status
+.cursor/status/
+.cursor/
+tools/cursor-status/
