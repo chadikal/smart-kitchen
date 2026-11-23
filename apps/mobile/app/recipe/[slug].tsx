@@ -5,6 +5,7 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import ArrowLeftIcon from '@/assets/brand/arrow-left.svg';
+import HeartIcon from '@/assets/brand/heart.svg';
 import { AppText } from '@/components/AppText';
 import { RecipeDetailContent } from '@/components/RecipeDetailContent';
 import { Screen } from '@/components/Screen';
@@ -19,6 +20,7 @@ import {
   type SettledDetailView,
 } from '@/src/catalog/recipe-detail';
 import { useAppLanguage } from '@/src/i18n/language-provider';
+import { useSavedRecipes } from '@/src/recipes/saved-provider';
 import { layoutDirection } from '@/src/i18n/layout';
 import { colors } from '@/src/theme/tokens';
 
@@ -85,6 +87,8 @@ function RecipePage({ view, canReturn, onLeave, onRetry }: {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { direction } = useAppLanguage();
+  const savedRecipes = useSavedRecipes();
+  const saved = view.status === 'ready' && savedRecipes.saved.includes(view.recipe.slug);
   const layout = layoutDirection(direction);
   const titleBottomRef = useRef(Number.POSITIVE_INFINITY);
   const scrollOffsetRef = useRef(0);
@@ -128,6 +132,18 @@ function RecipePage({ view, canReturn, onLeave, onRetry }: {
                 {view.recipe.title}
               </AppText>
             </Animated.View>
+          ) : <View style={styles.navTitle} />}
+          {view.status === 'ready' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={saved ? t('recipes.unsave') : t('recipes.save')}
+              accessibilityState={{ selected: saved, disabled: !savedRecipes.ready }}
+              disabled={!savedRecipes.ready}
+              onPress={() => savedRecipes.toggle(view.recipe.slug)}
+              style={[styles.back, saved ? styles.saved : null]}
+            >
+              <HeartIcon width={18} height={18} fill={saved ? colors.sage : 'none'} />
+            </Pressable>
           ) : null}
         </View>
         <Animated.View pointerEvents="none" style={[styles.navDivider, dividerStyle]} />
@@ -241,6 +257,10 @@ const styles = StyleSheet.create({
   navTitle: {
     flex: 1,
     minWidth: 0,
+  },
+  saved: {
+    backgroundColor: colors.sageWash,
+    borderColor: colors.sage,
   },
   status: {
     width: '100%',

@@ -1,3 +1,4 @@
+import { photoForRecipe } from '@/src/catalog/demo-photos';
 import { qualifyFact } from '@/src/catalog/recipe-facts';
 import { Link } from 'expo-router';
 import { RecipePhotoView } from '@/components/RecipePhotoView';
@@ -12,27 +13,55 @@ import { localizeDigits } from '@/src/i18n/languages';
 import { layoutDirection } from '@/src/i18n/layout';
 import { colors, radii } from '@/src/theme/tokens';
 
-export function RecipeDetailContent({ recipe, onTitleBottomChange }: {
+export function RecipeDetailContent({ recipe, onTitleBottomChange, notice }: {
   recipe: RecipeDetail;
   onTitleBottomChange?: (bottom: number) => void;
+  notice?: string;
 }) {
   const { t } = useTranslation();
   const { direction } = useAppLanguage();
   const layout = layoutDirection(direction);
   const places = [...recipe.countries, ...recipe.cuisines];
   const description = recipe.description.trim();
-  const facts: { label: string; value: string }[] = [];
-  for (const [label, value] of [['prep', recipe.prepTimeMinutes], ['cook', recipe.cookTimeMinutes], ['total', recipe.totalTimeMinutes]] as const) {
-    if (value !== null) facts.push({ label: t(`recipe.${label}`), value: qualifyFact(t('recipe.minutes', { count: value }), recipe.factSources?.[`${label}TimeMinutes`]) });
-  }
-  if (recipe.additionalTimeMinutes && recipe.additionalTimeMinutes > 0) facts.push({ label: t('recipe.rest'), value: qualifyFact(t('recipe.minutes', { count: recipe.additionalTimeMinutes }), recipe.factSources?.additionalTimeMinutes) });
-  if (recipe.servings !== null) facts.push({ label: t('recipe.servings'), value: String(recipe.servings) });
-  if (recipe.difficulty !== null) facts.push({ label: t(recipe.factSources?.difficulty === 'EDITORIAL' ? 'recipe.savoraDifficulty' : 'recipe.difficulty'), value: t(`home.difficulty.${recipe.difficulty}`) });
+  const prep = recipe.prepTimeMinutes === null ? null : { label: t('recipe.prep'), value: qualifyFact(t('recipe.minutes', { count: recipe.prepTimeMinutes }), recipe.factSources?.prepTimeMinutes) };
+  const cook = recipe.cookTimeMinutes === null ? null : { label: t('recipe.cook'), value: qualifyFact(t('recipe.minutes', { count: recipe.cookTimeMinutes }), recipe.factSources?.cookTimeMinutes) };
+  const servings = recipe.servings === null ? null : { label: t('recipe.servings'), value: String(recipe.servings) };
+  const difficulty = recipe.difficulty === null ? null : { label: t(recipe.factSources?.difficulty === 'EDITORIAL' ? 'recipe.savoraDifficulty' : 'recipe.difficulty'), value: t(`home.difficulty.${recipe.difficulty}`) };
+  const grid = prep !== null && cook !== null && servings !== null && difficulty !== null;
+  const facts = grid ? [prep, cook, servings, difficulty] : [
+    prep,
+    cook,
+    recipe.totalTimeMinutes === null ? null : { label: t('recipe.total'), value: qualifyFact(t('recipe.minutes', { count: recipe.totalTimeMinutes }), recipe.factSources?.totalTimeMinutes) },
+    recipe.additionalTimeMinutes && recipe.additionalTimeMinutes > 0 ? { label: t('recipe.rest'), value: qualifyFact(t('recipe.minutes', { count: recipe.additionalTimeMinutes }), recipe.factSources?.additionalTimeMinutes) } : null,
+    servings,
+    difficulty,
+  ].filter((fact): fact is { label: string; value: string } => fact !== null);
   const unitLabel = (unit: MeasuredUnit) => t(`recipe.units.${unit}`);
+  const photo = photoForRecipe(recipe.slug, recipe.photo);
 
   return (
     <>
+      <View style={notice ? styles.notice : undefined} onLayout={onTitleBottomChange ? (event) => {
+        const { y, height } = event.nativeEvent.layout;
+        onTitleBottomChange(y + height);
+      } : undefined}>
+        <AppText role="display" accessibilityRole="header" contentLanguage={recipe.contentLanguage}>
+          {recipe.title}
+        </AppText>
+        {notice ? <AppText role="meta" color={colors.sage}>{notice}</AppText> : null}
+      </View>
+      {photo ? <RecipePhotoView photo={photo} title={recipe.title} showCredit={!recipe.source || recipe.source.name !== photo.attribution} /> : null}
       <View style={styles.intro}>
+        {description.length > 0 ? (
+          <AppText role="body" color={colors.muted} contentLanguage={recipe.contentLanguage}>
+            {description}
+          </AppText>
+        ) : null}
+        {recipe.fallbackUsed ? (
+          <AppText role="meta" color={colors.sage}>
+            {t(`discover.fallback.${recipe.contentLanguage}`)}
+          </AppText>
+        ) : null}
         {places.length > 0 ? (
           <View {...layout.props} style={[styles.places, layout.style]}>
             {places.map((place, index) => (
@@ -49,24 +78,6 @@ export function RecipeDetailContent({ recipe, onTitleBottomChange }: {
             ))}
           </View>
         ) : null}
-        <View onLayout={onTitleBottomChange ? (event) => {
-          const { y, height } = event.nativeEvent.layout;
-          onTitleBottomChange(y + height);
-        } : undefined}>
-          <AppText role="display" accessibilityRole="header" contentLanguage={recipe.contentLanguage}>
-            {recipe.title}
-          </AppText>
-        </View>
-        {recipe.fallbackUsed ? (
-          <AppText role="meta" color={colors.sage}>
-            {t(`discover.fallback.${recipe.contentLanguage}`)}
-          </AppText>
-        ) : null}
-        {description.length > 0 ? (
-          <AppText role="body" color={colors.muted} contentLanguage={recipe.contentLanguage}>
-            {description}
-          </AppText>
-        ) : null}
         {recipe.dietaryTags.length > 0 ? (
           <View {...layout.props} style={[styles.tags, layout.style]}>
             {recipe.dietaryTags.map((tag, index) => (
@@ -79,10 +90,8 @@ export function RecipeDetailContent({ recipe, onTitleBottomChange }: {
           </View>
         ) : null}
       </View>
-
-      {recipe.photo ? <RecipePhotoView photo={recipe.photo} title={recipe.title} showCredit={!recipe.source || recipe.source.name !== recipe.photo.attribution} /> : null}
       {facts.length > 0 ? <View {...layout.props} style={[styles.facts, layout.style]}>
-        {facts.map((fact) => <Fact key={fact.label} label={fact.label} value={fact.value} />)}
+        {facts.map((fact) => <Fact key={fact.label} label={fact.label} value={fact.value} grid={grid} />)}
       </View> : null}
 
       {recipe.timingNote ? <AppText role="meta" color={colors.muted} contentLanguage={recipe.originalLanguage}>{recipe.timingNote}</AppText> : null}
@@ -159,9 +168,9 @@ export function RecipeDetailContent({ recipe, onTitleBottomChange }: {
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+function Fact({ label, value, grid }: { label: string; value: string; grid?: boolean }) {
   return (
-    <View style={styles.fact}>
+    <View style={[styles.fact, grid ? styles.factGrid : null]}>
       <AppText role="compactTitle" style={styles.factText}>
         {value}
       </AppText>
@@ -194,6 +203,7 @@ function MeasuredAmount({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
+  notice: { width: '100%', gap: 8 },
   intro: {
     width: '100%',
     gap: 12,
@@ -237,6 +247,12 @@ const styles = StyleSheet.create({
     flexBasis: '28%',
     minWidth: 88,
     gap: 4,
+  },
+  factGrid: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    maxWidth: '48%',
+    minWidth: 0,
   },
   factText: {
     textAlign: 'center',

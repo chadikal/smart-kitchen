@@ -11,6 +11,8 @@
   },
   "scripts": {
     "dev:mobile": "npm run start -w @smart-kitchen/mobile",
+    "demo:mobile": "npm run demo -w @smart-kitchen/mobile",
+    "demo:capture": "npm run demo:capture -w @smart-kitchen/mobile",
     "dev:api": "npm run start:dev -w @smart-kitchen/api",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

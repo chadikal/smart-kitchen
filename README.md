@@ -92,7 +92,9 @@ Then:
 - Press `a` to open Android.
 - Scan the QR code with Expo Go for a physical device.
 
-The app opens on Home, Discover, My Kitchen, My Recipes, and Profile. Profile switches between English and Arabic. Arabic uses right-to-left layout in the current session through Expo Router's locale direction and a root layout direction. `expo-localization` also allows RTL when the device language is Arabic.
+The app opens on Home, Discover, My Kitchen, My Recipes, and Profile. Guests can browse without an account. Profile switches between English and Arabic and offers sign-in when Supabase is configured. Arabic uses right-to-left layout in the current session through Expo Router's locale direction and a root layout direction. `expo-localization` also allows RTL when the device language is Arabic.
+
+Account setup, redirect URLs, and Google and Apple dashboard steps are in [docs/ACCOUNT.md](docs/ACCOUNT.md).
 
 ## Checks
 

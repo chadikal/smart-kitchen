@@ -185,6 +185,10 @@ function validateRecipe(
         problems.push(
           `${recipe.slug} is missing a ${language} instruction for step ${step.position}.`,
         );
+      } else if (language === 'AR' && genderedArabicCommand.test(instruction)) {
+        problems.push(
+          `${recipe.slug} step ${step.position} uses a gendered Arabic command. Use a verbal noun such as إضافة or تقطيع.`,
+        );
       }
     }
   }
@@ -400,10 +404,10 @@ export const seedCatalog: SeedCatalog = {
         taste('fine-salt', 9),
       ],
       steps: [
-        step(1, 'Rinse the lentils, then chop the onion and garlic.', 'اغسل العدس، ثم فرّم البصل والثوم.'),
-        step(2, 'Warm the oil, soften the onion and garlic, and stir in the cumin.', 'سخّن الزيت، ليّن البصل والثوم، ثم أضف الكمون.'),
-        step(3, 'Add the lentils and water and simmer until the lentils are soft.', 'أضف العدس والماء واتركه على نار هادئة حتى يطرى العدس.'),
-        step(4, 'Stir in the lemon and salt, then add parsley if you are using it.', 'أضف الليمون والملح، ثم البقدونس إن استخدمته.'),
+        step(1, 'Rinse the lentils, then chop the onion and garlic.', 'غسل العدس، ثم فرم البصل والثوم.'),
+        step(2, 'Warm the oil, soften the onion and garlic, and stir in the cumin.', 'تسخين الزيت، تليين البصل والثوم، ثم إضافة الكمون.'),
+        step(3, 'Add the lentils and water and simmer until the lentils are soft.', 'إضافة العدس والماء وتركه على نار هادئة حتى يطرى العدس.'),
+        step(4, 'Stir in the lemon and salt, then add parsley if you are using it.', 'إضافة الليمون والملح، ثم البقدونس إن استُخدم.'),
       ],
     }),
     recipe({
@@ -435,9 +439,9 @@ export const seedCatalog: SeedCatalog = {
         taste('fine-salt', 6),
       ],
       steps: [
-        step(1, 'Heat the oven to 200°C. Pat the chicken dry.', 'سخّن الفرن إلى ٢٠٠ درجة. جفف الدجاج.'),
-        step(2, 'Rub the chicken with oil, lemon, garlic, pepper, and salt.', 'ادعك الدجاج بالزيت والليمون والثوم والفلفل والملح.'),
-        step(3, 'Roast until the juices run clear, then rest before carving.', 'اشوه حتى يصبح العصير صافياً، ثم اتركه يرتاح قبل التقطيع.'),
+        step(1, 'Heat the oven to 200°C. Pat the chicken dry.', 'تسخين الفرن إلى ٢٠٠ درجة. تجفيف الدجاج.'),
+        step(2, 'Rub the chicken with oil, lemon, garlic, pepper, and salt.', 'دعك الدجاج بالزيت والليمون والثوم والفلفل والملح.'),
+        step(3, 'Roast until the juices run clear, then rest before carving.', 'الشوي حتى يصبح العصير صافيًا، ثم تركه يرتاح قبل التقطيع.'),
       ],
     }),
     recipe({
@@ -469,9 +473,9 @@ export const seedCatalog: SeedCatalog = {
         measured('fresh-basil', 6, '8.000', 'GRAM', { EN: 'Torn', AR: 'ممزق' }, true),
       ],
       steps: [
-        step(1, 'Chop the tomatoes and garlic.', 'قطّع الطماطم والثوم.'),
-        step(2, 'Warm the oil, cook the garlic briefly, then add the tomatoes.', 'سخّن الزيت، اطبخ الثوم قليلاً، ثم أضف الطماطم.'),
-        step(3, 'Stir in the beans and salt and simmer until the sauce thickens.', 'أضف الفاصولياء والملح واتركها حتى تتكاثف الصلصة.'),
+        step(1, 'Chop the tomatoes and garlic.', 'تقطيع الطماطم والثوم.'),
+        step(2, 'Warm the oil, cook the garlic briefly, then add the tomatoes.', 'تسخين الزيت، طهي الثوم قليلًا، ثم إضافة الطماطم.'),
+        step(3, 'Stir in the beans and salt and simmer until the sauce thickens.', 'إضافة الفاصولياء والملح وتركها حتى تتكاثف الصلصة.'),
       ],
     }),
     recipe({
@@ -503,9 +507,9 @@ export const seedCatalog: SeedCatalog = {
         measured('baking-powder', 6, '8.000', 'GRAM'),
       ],
       steps: [
-        step(1, 'Heat the oven to 180°C and line a cake tin.', 'سخّن الفرن إلى ١٨٠ درجة وجهّز قالب الكعكة.'),
-        step(2, 'Weigh the flour, sugar, yogurt, and baking powder.', 'زِن الطحين والسكر والزبادي والبيكنج باودر.'),
-        step(3, 'Mix in the oil and eggs, then bake until the center is set.', 'أضف الزيت والبيض، ثم اخبز حتى ينضج الوسط.'),
+        step(1, 'Heat the oven to 180°C and line a cake tin.', 'تسخين الفرن إلى ١٨٠ درجة وتجهيز قالب الكعكة.'),
+        step(2, 'Weigh the flour, sugar, yogurt, and baking powder.', 'وزن الطحين والسكر والزبادي والبيكنج باودر.'),
+        step(3, 'Mix in the oil and eggs, then bake until the center is set.', 'إضافة الزيت والبيض، ثم الخبز حتى ينضج الوسط.'),
       ],
     }),
     recipe({
@@ -535,9 +539,9 @@ export const seedCatalog: SeedCatalog = {
         measured('sesame-seeds', 4, '30.000', 'GRAM'),
       ],
       steps: [
-        step(1, 'Heat the oven to 170°C.', 'سخّن الفرن إلى ١٧٠ درجة.'),
-        step(2, 'Work the butter into the flour, sugar, and sesame.', 'ادمج الزبدة مع الطحين والسكر والسمسم.'),
-        step(3, 'Press the dough into a tin, bake, and cut while warm.', 'افرد العجين في صينية، اخبزه، وقطعه وهو دافئ.'),
+        step(1, 'Heat the oven to 170°C.', 'تسخين الفرن إلى ١٧٠ درجة.'),
+        step(2, 'Work the butter into the flour, sugar, and sesame.', 'دمج الزبدة مع الطحين والسكر والسمسم.'),
+        step(3, 'Press the dough into a tin, bake, and cut while warm.', 'فرد العجين في صينية، خبزه، وتقطيعه وهو دافئ.'),
       ],
     }),
     recipe({
@@ -568,9 +572,9 @@ export const seedCatalog: SeedCatalog = {
         measured('spring-onion', 5, '2.000', 'PIECE'),
       ],
       steps: [
-        step(1, 'Simmer the kombu in water, then remove it.', 'اترك الكومبو في الماء على نار هادئة، ثم أخرجه.'),
-        step(2, 'Take the pot off the heat and stir in the miso.', 'أبعد القدر عن النار وحرك الميسو فيه.'),
-        step(3, 'Add the tofu and spring onion and warm gently without boiling.', 'أضف التوفو والبصل الأخضر ودفئ المرق دون غليان.'),
+        step(1, 'Simmer the kombu in water, then remove it.', 'ترك الكومبو في الماء على نار هادئة، ثم إخراجه.'),
+        step(2, 'Take the pot off the heat and stir in the miso.', 'إبعاد القدر عن النار وتحريك الميسو فيه.'),
+        step(3, 'Add the tofu and spring onion and warm gently without boiling.', 'إضافة التوفو والبصل الأخضر وتدفئة المرق دون غليان.'),
       ],
     }),
     recipe({
@@ -604,9 +608,9 @@ export const seedCatalog: SeedCatalog = {
         measured('fresh-coriander', 8, '10.000', 'GRAM', undefined, true),
       ],
       steps: [
-        step(1, 'Chop the onion and tomatoes.', 'فرّم البصل والطماطم.'),
-        step(2, 'Cook the onion in oil, then add the cumin, tomatoes, beans, and corn.', 'اطبخ البصل بالزيت، ثم أضف الكمون والطماطم والفاصولياء والذرة.'),
-        step(3, 'Season with salt and scatter coriander on top if you like.', 'تبّل بالملح وانثر الكزبرة فوقها إن رغبت.'),
+        step(1, 'Chop the onion and tomatoes.', 'فرم البصل والطماطم.'),
+        step(2, 'Cook the onion in oil, then add the cumin, tomatoes, beans, and corn.', 'طهي البصل بالزيت، ثم إضافة الكمون والطماطم والفاصولياء والذرة.'),
+        step(3, 'Season with salt and scatter coriander on top if you like.', 'التتبيل بالملح ونثر الكزبرة فوقها عند الرغبة.'),
       ],
     }),
     recipe({
@@ -632,9 +636,9 @@ export const seedCatalog: SeedCatalog = {
         measured('butter', 4, '20.000', 'GRAM', { AR: 'مذابة' }),
       ],
       steps: [
-        step(1, '', 'سخّن الحليب في قدر.'),
-        step(2, '', 'رش السميد مع التحريك حتى يثخن.'),
-        step(3, '', 'أضف السكر والزبدة وحرّك حتى تذوب.'),
+        step(1, '', 'تسخين الحليب في قدر.'),
+        step(2, '', 'إضافة السميد مع التحريك حتى يثخن.'),
+        step(3, '', 'إضافة السكر والزبدة والتحريك حتى تذوب.'),
       ],
     }),
   ],
@@ -668,6 +672,14 @@ function measured(
 function taste(ingredientSlug: string, position: number): SeedLine {
   return { ingredientSlug, position, amount: 'TO_TASTE' };
 }
+
+/**
+ * Arabic method text uses a gender-neutral verbal noun, not a command:
+ * تقطيع البصل، إضافة الزيت، خلط المكونات.
+ * User-authored recipe text is stored as written and is not rewritten here.
+ */
+export const genderedArabicCommand =
+  /(?:^|[\s،.؛])(?:أضف|أضيفي|سخّن|سخّني|اطبخ|اطبخي|قطّع|قطّعي|اخلط|اخلطي|اترك|اتركي|اغسل|فرّم|ادعك|اشوه|اخبز|اخبزي|ادمج|افرد|حرّك|تبّل|انثر|جفف|جهّز|أبعد|دفئ|زن|زِن|رش)(?=$|[\s،.؛])/;
 
 function step(position: number, en: string, ar: string): SeedStep {
   if (en === '') return { position, instructions: { AR: ar } };

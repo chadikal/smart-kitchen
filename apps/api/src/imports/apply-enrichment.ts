@@ -4,15 +4,15 @@ import { reviewedRecipes } from './reviewed-recipes';
 import { reviewedDevelopmentRecipe, sourceFingerprint } from './themealdb.publish';
 import { MealDbError } from './themealdb.client';
 
-const include = {
+export const enrichmentRecipeInclude = {
   importedFrom: true, metadataReview: true, translations: true,
   ingredients: { orderBy: { position: 'asc' as const }, include: { ingredient: { include: { translations: true } }, notes: true } },
   steps: { orderBy: { position: 'asc' as const }, include: { translations: true } },
   dietaryTags: { include: { dietaryTag: true } },
 } satisfies Prisma.RecipeInclude;
-type RecordForReview = Prisma.RecipeGetPayload<{ include: typeof include }>;
+type RecordForReview = Prisma.RecipeGetPayload<{ include: typeof enrichmentRecipeInclude }>;
 
-function contentHash(row: RecordForReview): string {
+export function contentHash(row: RecordForReview): string {
   return sourceFingerprint({
     slug: row.slug, importId: row.importId, ownerId: row.ownerId, originalLanguage: row.originalLanguage,
     publicationStatus: row.publicationStatus, visibility: row.visibility, developmentOnly: row.developmentOnly,
@@ -61,7 +61,7 @@ export async function applyRecipeEnrichment(prisma: PrismaClient, apply: boolean
       const imported = reviewedRecipes.find((item) => item.externalId === review.externalId);
       if (!imported) throw new MealDbError('Metadata review is not in the reviewed recipe manifest.');
       await tx.$queryRaw`SELECT id FROM recipes WHERE slug = ${imported.slug} FOR UPDATE`;
-      const row = await tx.recipe.findUniqueOrThrow({ where: { slug: imported.slug }, include });
+      const row = await tx.recipe.findUniqueOrThrow({ where: { slug: imported.slug }, include: enrichmentRecipeInclude });
       if (row.ownerId !== null || !row.developmentOnly || row.originalLanguage !== 'EN'
         || row.publicationStatus !== 'PUBLISHED' || row.visibility !== 'PUBLIC'
         || row.importedFrom?.externalId !== review.externalId) throw new MealDbError('Recipe ownership or publication state changed. Nothing was enriched.');
@@ -83,7 +83,7 @@ export async function applyRecipeEnrichment(prisma: PrismaClient, apply: boolean
       } });
       await tx.recipeTranslation.update({ where: { recipeId_language: { recipeId: row.id, language: 'EN' } }, data: { description: review.description } });
       for (const tag of tags) await tx.recipeDietaryTag.create({ data: { recipeId: row.id, dietaryTagId: tag.id } });
-      const updated = await tx.recipe.findUniqueOrThrow({ where: { id: row.id }, include });
+      const updated = await tx.recipe.findUniqueOrThrow({ where: { id: row.id }, include: enrichmentRecipeInclude });
       const fields = { ...review, description: { value: review.description, basis: 'EDITORIAL', sourceUrl: row.importedFrom.sourceUrl, note: 'Savora summary of the actual imported ingredients and instructions.' } };
       await tx.recipeMetadataReview.create({ data: {
         recipeId: row.id, revision: enrichmentRevision, contentHash: contentHash(updated),

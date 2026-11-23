@@ -6,6 +6,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import '@/src/i18n';
 import { useAppFonts } from '@/src/fonts';
+import { SessionProvider } from '@/src/auth/session-provider';
+import { SavedRecipesProvider } from '@/src/recipes/saved-provider';
 import { LanguageProvider, useAppLanguage } from '@/src/i18n/language-provider';
 import { layoutDirection } from '@/src/i18n/layout';
 import { theme } from '@/src/theme';
@@ -29,7 +31,11 @@ export default function RootLayout() {
 
   return (
     <LanguageProvider>
-      <LocalizedApp />
+      <SessionProvider>
+        <SavedRecipesProvider>
+          <LocalizedApp />
+        </SavedRecipesProvider>
+      </SessionProvider>
     </LanguageProvider>
   );
 }
@@ -60,7 +66,11 @@ function LocalizedApp() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
             <Stack.Screen name="recipe/[slug]" options={{ headerShown: false }} />
+            <Stack.Screen name="recipe-draft/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="account" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
           </Stack>
         </LocaleProvider>
       </PaperProvider>

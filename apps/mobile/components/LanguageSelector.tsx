@@ -9,6 +9,7 @@ type LanguageSelectorProps = {
   label: string;
   english: string;
   arabic: string;
+  onChange?: (language: AppLanguage) => void;
 };
 
 const options: readonly { value: AppLanguage; key: 'english' | 'arabic' }[] = [
@@ -16,7 +17,7 @@ const options: readonly { value: AppLanguage; key: 'english' | 'arabic' }[] = [
   { value: 'ar', key: 'arabic' },
 ];
 
-export function LanguageSelector({ label, english, arabic }: LanguageSelectorProps) {
+export function LanguageSelector({ label, english, arabic, onChange }: LanguageSelectorProps) {
   const { language, setLanguage } = useAppLanguage();
   const labels = { english, arabic };
   const ltr = layoutDirection('ltr');
@@ -37,7 +38,10 @@ export function LanguageSelector({ label, english, arabic }: LanguageSelectorPro
               accessibilityRole="radio"
               accessibilityState={{ selected }}
               accessibilityLabel={labels[option.key]}
-              onPress={() => setLanguage(option.value)}
+              onPress={() => {
+                setLanguage(option.value);
+                onChange?.(option.value);
+              }}
               style={({ pressed }) => [
                 styles.button,
                 selected ? styles.selected : null,

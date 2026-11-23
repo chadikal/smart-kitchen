@@ -21,7 +21,15 @@ export function RecipePhotoView({ photo, title, variant = 'full', showCredit = t
           {!thumbnail && photo ? <AppText role="meta">{t('recipe.photoUnavailable')}</AppText> : null}
         </View>
       ) : (
-        <Image source={{ uri: photo.url }} accessibilityLabel={title} resizeMode="cover" style={frame} onError={() => setFailedUrl(photo.url)} />
+        <View style={[frame, styles.clip]}>
+          <Image
+            source={photo.localSource === undefined ? { uri: photo.url } : photo.localSource}
+            accessibilityLabel={title}
+            resizeMode="cover"
+            style={styles.fill}
+            onError={() => setFailedUrl(photo.url)}
+          />
+        </View>
       )}
       {photo && showCredit ? <AppText role="meta" color={colors.muted}>{t('recipe.photoCredit', { name: photo.attribution })}</AppText> : null}
     </View>
@@ -33,5 +41,7 @@ const styles = StyleSheet.create({
   thumbnailContainer: { width: 96, flexShrink: 0 },
   thumbnail: { width: 96, height: 96, borderRadius: 16, backgroundColor: colors.sageWash },
   full: { width: '100%', aspectRatio: 16 / 10, borderRadius: radii.photo, backgroundColor: colors.sageWash },
+  clip: { overflow: 'hidden' },
+  fill: { width: '100%', height: '100%' },
   placeholder: { alignItems: 'center', justifyContent: 'center', gap: 8, padding: 8 },
 });

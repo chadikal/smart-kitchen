@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
-import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import BotanicalSprig from '@/assets/brand/botanical-sprig.svg';
 import HeartIcon from '@/assets/brand/heart.svg';
 import SproutIcon from '@/assets/brand/sprout.svg';
-import UserIcon from '@/assets/brand/user-round.svg';
 import { AppText } from '@/components/AppText';
+import { ProfileButton } from '@/components/ProfileButton';
 import { CountryCard, CountryRow } from '@/components/CountryCard';
 import { Heading } from '@/components/Heading';
 import { RecipeCard } from '@/components/RecipeCard';
 import { Screen } from '@/components/Screen';
 import { SearchField } from '@/components/SearchField';
 import { apiBaseUrl } from '@/src/config/api';
+import { demoCatalogBody } from '@/src/demo/catalog';
+import { isDemoMode } from '@/src/demo/mode';
 import { recipeFactsText, fetchHomeRecipes, fetchLiveRecipes, type LiveRecipeResult, type LiveRecipeCard } from '@/src/catalog/live-recipes';
 import { readCatalogOptions, type CatalogOption } from '@/src/catalog/discover';
+import { useSession } from '@/src/auth/session-provider';
 import { useAppLanguage } from '@/src/i18n/language-provider';
 import { colors } from '@/src/theme/tokens';
 
@@ -24,6 +26,7 @@ type CountrySnapshot = { language: string; result: CatalogOption[] | null };
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { language } = useAppLanguage();
+  const session = useSession();
   const [query, setQuery] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [snapshot, setSnapshot] = useState<RecipeSnapshot | null>(null);
@@ -32,7 +35,8 @@ export default function HomeScreen() {
   const context = JSON.stringify([language, query.trim()]);
   const key = JSON.stringify([context, attempt]);
   const live = snapshot?.key === key ? snapshot.result : 'loading';
-  const countries = countrySnapshot?.language === language ? countrySnapshot.result : 'loading';
+  const demoCountries = isDemoMode() ? readCatalogOptions(demoCatalogBody(`http://savora.local/countries?lang=${language}`)) : null;
+  const countries = demoCountries ?? (countrySnapshot?.language === language ? countrySnapshot.result : 'loading');
   const hour = new Date().getHours();
   const eyebrow = hour < 12 ? t('home.morning') : hour < 17 ? t('home.afternoon') : t('home.evening');
   const items = live !== 'loading' && live.ok ? live.items : [];
@@ -51,6 +55,7 @@ export default function HomeScreen() {
   }, [language, query, key, context]);
 
   useEffect(() => {
+    if (isDemoMode()) return undefined;
     const controller = new AbortController();
     void fetch(`${apiBaseUrl}/countries?lang=${language}`, { signal: controller.signal })
       .then(async (response) => response.ok ? readCatalogOptions(await response.json()) : null)
@@ -60,7 +65,7 @@ export default function HomeScreen() {
   }, [language, countryAttempt]);
 
   const retry = () => setAttempt((value) => value + 1);
-  const browseHref = { pathname: '/discover' as const, params: { q: query.trim(), country: '' } };
+  const showGuestNote = session.status === 'guest' || session.status === 'unconfigured';
   const card = (recipe: LiveRecipeCard, variant: 'featured' | 'browse') => (
     <RecipeCard key={recipe.slug} slug={recipe.slug} contentLanguage={recipe.contentLanguage} photo={recipe.photo}
       variant={variant} title={recipe.title} kicker={recipe.kicker}
@@ -73,12 +78,7 @@ export default function HomeScreen() {
     <Screen includeTopInset refreshControl={<RefreshControl refreshing={live === 'loading' && snapshot?.context === context} onRefresh={retry} tintColor={colors.sage} />}>
       <View style={styles.brandRow}>
         <View style={styles.wordmark}><SproutIcon /><AppText role="wordmark" block={false} style={styles.wordmarkText}>savora</AppText></View>
-        <Link href="/profile" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={t('tabs.profile')} style={styles.guest}>
-            <AppText role="meta" block={false} color={colors.muted}>{t('home.guest')}</AppText>
-            <View style={styles.guestMark}><UserIcon /></View>
-          </Pressable>
-        </Link>
+        <ProfileButton />
       </View>
       <View style={styles.welcome}>
         <View style={styles.greeting}>
@@ -98,7 +98,6 @@ export default function HomeScreen() {
         <View style={styles.section}><Heading>{t('home.featuredHeading')}</Heading>{card(featured, 'featured')}</View>
       ) : null}
       {home && home.picks.length > 0 ? <View style={styles.section}><Heading>{t('home.picksHeading')}</Heading>{home.picks.map((recipe) => card(recipe, 'browse'))}</View> : null}
-      {home && home.quick.length > 0 ? <View style={styles.section}><Heading>{t('home.quickHeading')}</Heading>{home.quick.map((recipe) => card(recipe, 'browse'))}</View> : null}
       {!query.trim() ? (
         <View style={styles.section}>
           <Heading>{t('home.placesHeading')}</Heading>
@@ -111,11 +110,9 @@ export default function HomeScreen() {
           ) : <AppText role="meta">{t('home.countriesEmpty')}</AppText>}
         </View>
       ) : null}
+      {home && home.quick.length > 0 ? <View style={styles.section}><Heading>{t('home.quickHeading')}</Heading>{home.quick.map((recipe) => card(recipe, 'browse'))}</View> : null}
       {rest.length > 0 ? <View style={styles.section}><Heading>{t(query.trim() ? 'home.searchResults' : 'home.catalogHeading')}</Heading>{rest.map((recipe) => card(recipe, 'browse'))}</View> : null}
-      <Link href={browseHref} asChild>
-        <Pressable accessibilityRole="link" style={styles.action}><AppText role="compactTitle" block={false} color={colors.sage}>{t(query.trim() ? 'home.browseResults' : 'home.browseAll')}</AppText></Pressable>
-      </Link>
-      <View style={styles.note}><HeartIcon /><View style={styles.noteText}><AppText role="meta">{t('home.welcomeNote')}</AppText></View></View>
+      {showGuestNote ? <View style={styles.note}><HeartIcon /><View style={styles.noteText}><AppText role="meta">{t('home.welcomeNote')}</AppText></View></View> : null}
     </Screen>
   );
 }
@@ -124,7 +121,7 @@ const styles = StyleSheet.create({
   action: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   brandRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
   },
@@ -132,20 +129,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-  },
-  guest: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    minHeight: 44,
-  },
-  guestMark: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.sageWash,
   },
   welcome: {
     flexDirection: 'row',

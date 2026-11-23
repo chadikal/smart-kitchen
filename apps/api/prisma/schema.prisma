@@ -60,12 +60,17 @@ enum QualitativeAmount {
   @@map("qualitative_amount")
 }
 
-/// Account that can own recipes. Authentication is intentionally not modeled.
+/// Account that can own recipes. Supabase is the credential store.
+/// authSubject is the verified token subject. Email is not stored or used to merge accounts.
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  recipes   Recipe[]
+  id                  String    @id @default(uuid()) @db.Uuid
+  authSubject         String?   @unique @map("auth_subject") @db.Uuid
+  displayName         String?   @map("display_name") @db.VarChar(80)
+  preferredLanguage   Language? @map("preferred_language")
+  welcomeCompletedAt  DateTime? @map("welcome_completed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  recipes             Recipe[]
 
   @@map("users")
 }

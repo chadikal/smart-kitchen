@@ -5,12 +5,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import SlidersIcon from '@/assets/brand/sliders-horizontal.svg';
 import CloseIcon from '@/assets/brand/x.svg';
 import { AppText } from '@/components/AppText';
+import { ProfileButton } from '@/components/ProfileButton';
 import { DiscoverFiltersSheet } from '@/components/DiscoverFilters';
 import { DiscoverSortSheet } from '@/components/DiscoverSort';
 import { RecipeCard } from '@/components/RecipeCard';
 import { Screen } from '@/components/Screen';
 import { SearchField } from '@/components/SearchField';
 import { apiBaseUrl } from '@/src/config/api';
+import { demoCatalogBody } from '@/src/demo/catalog';
+import { isDemoMode } from '@/src/demo/mode';
 import { recipeFactsText, readLiveRecipeList, type LiveRecipeCard } from '@/src/catalog/live-recipes';
 import {
   acceptOptionResponse,
@@ -232,7 +235,14 @@ export default function DiscoverScreen() {
   return (
     <Screen
       includeTopInset
-      scrollHeader={<AppText role="section" accessibilityRole="header">{t('discover.heading')}</AppText>}
+      scrollHeader={
+        <View {...layout.props} style={[styles.titleRow, layout.style]}>
+          <View style={styles.titleCopy}>
+            <AppText role="display" accessibilityRole="header">{t('discover.heading')}</AppText>
+          </View>
+          <ProfileButton />
+        </View>
+      }
       scrollToTopLabel={t('discover.backToTop')}
       stickyHeader={
         <View style={styles.header}>
@@ -366,7 +376,7 @@ function Chip({
       accessibilityState={expanded === undefined ? undefined : { expanded }}
       aria-expanded={expanded}
       onPress={onPress}
-      style={[styles.chip, selected ? styles.chipSelected : styles.chipPlain, layout.style]}
+      style={({ pressed }) => [styles.chip, selected ? styles.chipSelected : styles.chipPlain, layout.style, pressed ? styles.pressed : null]}
       {...layout.props}
     >
       {icon ? <SlidersIcon /> : null}
@@ -392,6 +402,8 @@ function recipeUrl(language: 'en' | 'ar', query: string, filters: DiscoverFilter
 }
 
 async function readJson(url: string, signal: AbortSignal): Promise<unknown | null> {
+  if (signal.aborted) throw Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' });
+  if (isDemoMode()) return demoCatalogBody(url);
   try {
     const response = await fetch(url, { signal, headers: { accept: 'application/json' } });
     if (!response.ok) return null;
@@ -420,6 +432,8 @@ function recipeNote(item: LiveRecipeCard, t: (key: string, values?: Record<strin
 }
 
 const styles = StyleSheet.create({
+  titleRow: { width: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  titleCopy: { flex: 1 },
   header: {
     width: '100%',
     gap: 12,
@@ -432,6 +446,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 2,
   },
+  pressed: { opacity: 0.72 },
   chip: {
     minHeight: 44,
     flexDirection: 'row',

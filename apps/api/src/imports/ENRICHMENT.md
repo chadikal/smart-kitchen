@@ -3,8 +3,12 @@
 `recipe-enrichment.ts` is the versioned review manifest. Each value records its
 basis (`SOURCE`, `ESTIMATE`, `EDITORIAL`, or `UNKNOWN`), evidence URL and review
 note. Estimates are planning aids, not kitchen-tested measurements. Descriptions
-are Savora summaries; difficulty follows the rubric below. No Arabic recipe text
-was fabricated and no ingredients, source measures, titles or steps were changed.
+are Savora summaries; difficulty follows the rubric below. That review did not
+change ingredients, source measures, titles, or steps.
+
+Arabic for these imports lives in `arabic-recipe-translations.ts`. It is a
+separate editorial document: English source text stays as imported, and the
+method uses gender-neutral verbal nouns.
 
 ## Difficulty rubric
 

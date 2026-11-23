@@ -14,7 +14,7 @@ The catalog schema and the rules it does not enforce are documented in [prisma/D
 
 ## Public recipes
 
-`GET /health` returns `{ "status": "ok" }` and does not query PostgreSQL. `GET /recipes` and `GET /recipes/:slug` are the public recipe API. `GET /countries`, `GET /cuisines`, and `GET /dietary-tags` are the public catalog-option API. There is no authentication and no write route. Responses are explicit JSON objects: they include slugs and omit database ids, `ownerId`, and seed provenance.
+`GET /health` returns `{ "status": "ok" }` and does not query PostgreSQL. `GET /recipes`, `GET /recipes/home`, and `GET /recipes/:slug` are the public recipe API. `GET /countries`, `GET /cuisines`, and `GET /dietary-tags` are the public catalog-option API. Those routes stay open to guests. `GET /account` and `PATCH /account` require a Supabase access token; see [account setup](../../docs/ACCOUNT.md). Public recipe responses are explicit JSON objects: they include slugs and omit database ids, `ownerId`, and seed provenance.
 
 A recipe is visible only when `publicationStatus` is `PUBLISHED`, `visibility` is `PUBLIC`, and its original-language translation is complete. A private recipe, a draft, a recipe whose original translation is missing or incomplete, and a slug that is not in the catalog all return the same `404` body, `Recipe not found`. A malformed slug or query parameter returns `400`. The list and the detail route use the same access rule.
 

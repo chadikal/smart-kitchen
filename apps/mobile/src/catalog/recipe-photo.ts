@@ -1,4 +1,10 @@
-export type RecipePhoto = { url: string; attribution: string; sourceUrl: string };
+export type RecipePhoto = {
+  url: string;
+  attribution: string;
+  sourceUrl: string;
+  /** Bundled demo art. Remote recipe photos never receive this from the API. */
+  localSource?: number;
+};
 
 // Source metadata is not an arbitrary URL to open or load.
 export function readRecipePhoto(value: unknown): RecipePhoto | null {

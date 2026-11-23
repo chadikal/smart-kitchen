@@ -7,7 +7,6 @@ import BookOpenIcon from '@/assets/brand/book-open.svg';
 import CompassIcon from '@/assets/brand/compass.svg';
 import CookingPotIcon from '@/assets/brand/cooking-pot.svg';
 import HouseIcon from '@/assets/brand/house.svg';
-import UserIcon from '@/assets/brand/user-round.svg';
 import { fontFamilyFor } from '@/src/fonts';
 import { useAppLanguage } from '@/src/i18n/language-provider';
 import { colors } from '@/src/theme/tokens';
@@ -38,7 +37,11 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.sage,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: [styles.bar, { height: 84 + Math.max(insets.bottom, 6), paddingBottom: Math.max(insets.bottom, 6) }],
+        tabBarStyle: {
+          ...styles.bar,
+          height: 84 + Math.max(insets.bottom, 6),
+          paddingBottom: Math.max(insets.bottom, 6),
+        },
         tabBarItemStyle: styles.item,
         tabBarIconStyle: styles.iconSlot,
         headerStyle: { backgroundColor: colors.paper },
@@ -78,6 +81,7 @@ export default function TabLayout() {
         name="kitchen"
         options={{
           title: t('tabs.kitchen'),
+          headerShown: false,
           tabBarLabel: tabLabel,
           tabBarIcon: ({ focused }) => (
             <TabGlyph focused={focused}>
@@ -90,22 +94,11 @@ export default function TabLayout() {
         name="recipes"
         options={{
           title: t('tabs.recipes'),
+          headerShown: false,
           tabBarLabel: tabLabel,
           tabBarIcon: ({ focused }) => (
             <TabGlyph focused={focused}>
               <BookOpenIcon />
-            </TabGlyph>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t('tabs.profile'),
-          tabBarLabel: tabLabel,
-          tabBarIcon: ({ focused }) => (
-            <TabGlyph focused={focused}>
-              <UserIcon />
             </TabGlyph>
           ),
         }}

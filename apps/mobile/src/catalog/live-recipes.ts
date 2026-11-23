@@ -1,3 +1,5 @@
+import { demoCatalogBody } from '../demo/catalog.ts';
+import { isDemoMode } from '../demo/mode.ts';
 import { readFactSources, qualifyFact, type FactSources } from './recipe-facts.ts';
 import { readRecipePhoto, type RecipePhoto } from './recipe-photo.ts';
 import type { AppLanguage } from '@/src/i18n/languages';
@@ -27,6 +29,13 @@ export async function fetchLiveRecipes(
   query: string,
   signal: AbortSignal,
 ): Promise<LiveRecipeResult> {
+  if (signal.aborted) throw abortError();
+  if (isDemoMode()) {
+    const params = new URLSearchParams({ lang: language, page: '1', pageSize: '20' });
+    const trimmed = query.trim();
+    if (trimmed.length > 0) params.set('q', trimmed);
+    return readLiveRecipeList(demoCatalogBody(`http://savora.local/recipes?${params.toString()}`));
+  }
   try {
     const params = new URLSearchParams({
       lang: language,
@@ -78,7 +87,8 @@ function readCard(value: unknown): LiveRecipeCard | null {
   if (item.totalTimeMinutes !== null && typeof item.totalTimeMinutes !== 'number') return null;
   if ((item.difficulty !== null && !isDifficulty(item.difficulty)) || typeof item.fallbackUsed !== 'boolean') return null;
   if (item.contentLanguage !== 'en' && item.contentLanguage !== 'ar') return null;
-  const names = [...namesFrom(item.countries), ...namesFrom(item.cuisines)];
+  const cuisines = namesFrom(item.cuisines);
+  const countries = namesFrom(item.countries);
   return {
     photo: readRecipePhoto(item.photo),
     slug: item.slug,
@@ -86,7 +96,7 @@ function readCard(value: unknown): LiveRecipeCard | null {
     totalTimeMinutes: item.totalTimeMinutes,
     difficulty: item.difficulty,
     factSources: readFactSources(item.factSources),
-    kicker: names.join(' · '),
+    kicker: cuisines[0] ?? countries[0] ?? '',
     dietaryNames: namesFrom(item.dietaryTags),
     fallback: item.fallbackUsed,
     contentLanguage: item.contentLanguage,
@@ -131,7 +141,15 @@ export function readHomeRecipes(body: unknown): LiveRecipeResult {
   return { ok: true, home, items, total: items.length };
 }
 
+function abortError(): Error {
+  const error = new Error('The operation was aborted.');
+  error.name = 'AbortError';
+  return error;
+}
+
 export async function fetchHomeRecipes(baseUrl: string, language: AppLanguage, signal: AbortSignal): Promise<LiveRecipeResult> {
+  if (signal.aborted) throw abortError();
+  if (isDemoMode()) return readHomeRecipes(demoCatalogBody(`http://savora.local/recipes/home?lang=${language}`));
   try {
     const response = await fetch(`${baseUrl}/recipes/home?lang=${language}`, { signal, headers: { accept: 'application/json' } });
     return response.ok ? readHomeRecipes(await response.json()) : { ok: false };

@@ -3,10 +3,19 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/AppText';
 import { Link } from 'expo-router';
 import FranceArt from '@/assets/brand/france.svg';
-import LebanonArt from '@/assets/brand/lebanon.svg';
-import MexicoArt from '@/assets/brand/mexico.svg';
+import GreeceArt from '@/assets/brand/greece.svg';
+import IndiaArt from '@/assets/brand/india.svg';
 import ItalyArt from '@/assets/brand/italy.svg';
 import JapanArt from '@/assets/brand/japan.svg';
+import LebanonArt from '@/assets/brand/lebanon.svg';
+import MexicoArt from '@/assets/brand/mexico.svg';
+import MoroccoArt from '@/assets/brand/morocco.svg';
+import SpainArt from '@/assets/brand/spain.svg';
+import ThailandArt from '@/assets/brand/thailand.svg';
+import TunisiaArt from '@/assets/brand/tunisia.svg';
+import TurkeyArt from '@/assets/brand/turkey.svg';
+import UnitedKingdomArt from '@/assets/brand/united-kingdom.svg';
+import UnitedStatesArt from '@/assets/brand/united-states.svg';
 import CookingPotIcon from '@/assets/brand/cooking-pot.svg';
 import type { CatalogOption } from '@/src/catalog/discover';
 import { useAppLanguage } from '@/src/i18n/language-provider';
@@ -16,10 +25,19 @@ import { colors, radii } from '@/src/theme/tokens';
 // Representative foods, rather than flags or claims of exclusive origin.
 const artwork = new Map<string, ReactNode>([
   ['france', <FranceArt key="france" />], // baguette
+  ['greece', <GreeceArt key="greece" />], // village salad
+  ['india', <IndiaArt key="india" />], // chickpea curry
   ['italy', <ItalyArt key="italy" />], // penne with tomato and basil
   ['japan', <JapanArt key="japan" />], // salmon nigiri
   ['lebanon', <LebanonArt key="lebanon" />], // hummus
   ['mexico', <MexicoArt key="mexico" />], // taco
+  ['morocco', <MoroccoArt key="morocco" />], // conical tagine
+  ['spain', <SpainArt key="spain" />], // potato tortilla
+  ['thailand', <ThailandArt key="thailand" />], // rice noodles
+  ['tunisia', <TunisiaArt key="tunisia" />], // chickpea stew
+  ['turkey', <TurkeyArt key="turkey" />], // menemen
+  ['united-kingdom', <UnitedKingdomArt key="united-kingdom" />], // apple crumble
+  ['united-states', <UnitedStatesArt key="united-states" />], // roast chicken
 ]);
 
 const washes = [colors.blush, colors.sand, colors.sageWash] as const;

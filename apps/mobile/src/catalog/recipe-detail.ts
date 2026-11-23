@@ -1,3 +1,5 @@
+import { demoDetailBody, demoRecipes } from '../demo/catalog.ts';
+import { isDemoMode } from '../demo/mode.ts';
 import { readFactSources, type FactSources } from './recipe-facts.ts';
 import { readRecipePhoto, type RecipePhoto } from './recipe-photo.ts';
 export const metricUnitMilliliters = {
@@ -193,6 +195,11 @@ export async function fetchRecipeDetail(
   language: RecipeLanguage,
   signal: AbortSignal,
 ): Promise<DetailLoad> {
+  if (signal.aborted) throw Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' });
+  if (isDemoMode()) {
+    const recipe = readRecipeDetail(demoDetailBody(slug, language));
+    return recipe ? { status: 'ok', recipe } : { status: 'missing' };
+  }
   try {
     const response = await fetch(`${baseUrl}/recipes/${encodeURIComponent(slug)}?lang=${language}`, {
       signal,
@@ -223,6 +230,7 @@ export function readPublicSlugPage(body: unknown): { slugs: string[]; pageCount:
 }
 
 export async function loadPublicRecipeSlugs(baseUrl: string, fetchImpl: typeof fetch = fetch): Promise<string[]> {
+  if (isDemoMode()) return demoRecipes.map((recipe) => recipe.slug);
   const slugs: string[] = [];
   const seen = new Set<string>();
   let page = 1;

@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  scrollHeading: { paddingHorizontal: space.screen, paddingTop: 16, paddingBottom: 4 },
+  scrollHeading: { paddingHorizontal: space.screen, paddingTop: 6, paddingBottom: 4 },
   stickyContent: { flexGrow: 1 },
   results: { paddingHorizontal: space.screen, paddingTop: 16 },
   toTop: {

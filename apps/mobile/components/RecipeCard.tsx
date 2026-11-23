@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { RecipePhotoView } from '@/components/RecipePhotoView';
+import { photoForRecipe } from '@/src/catalog/demo-photos';
 import type { RecipePhoto } from '@/src/catalog/recipe-photo';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Link } from 'expo-router';
@@ -31,14 +32,15 @@ export function RecipeCard(props: RecipeCardProps) {
   );
 }
 
-function RecipeCardContent({ variant, title, kicker, detail, note, badge, contentLanguage, photo }: RecipeCardProps) {
+function RecipeCardContent({ variant, title, kicker, detail, note, badge, contentLanguage, photo, slug }: RecipeCardProps) {
+  const shown = photoForRecipe(slug, photo);
   const { direction } = useAppLanguage();
   const layout = layoutDirection(direction);
 
   if (variant === 'featured') {
     return (
       <View {...layout.props} style={[styles.card, layout.style]}>
-        {photo ? <RecipePhotoView photo={photo} title={title} /> : <View {...layout.props} style={[styles.featuredBand, layout.style]}>
+        {shown ? <RecipePhotoView photo={shown} title={title} /> : <View {...layout.props} style={[styles.featuredBand, layout.style]}>
           {badge ? (
             <View style={styles.badge}>
               <AppText role="eyebrow" block={false}>{badge}</AppText>
@@ -46,13 +48,8 @@ function RecipeCardContent({ variant, title, kicker, detail, note, badge, conten
           ) : null}
         </View>}
         <View style={styles.copy}>
-          {kicker ? (
-            <AppText role="eyebrow" color={colors.sage}>
-              {kicker}
-            </AppText>
-          ) : null}
           <AppText role="featuredTitle" contentLanguage={contentLanguage}>{title}</AppText>
-          {detail ? <AppText role="meta" color={colors.muted}>{detail}</AppText> : null}
+          {metaLine(kicker, detail) ? <AppText role="meta" color={colors.muted}>{metaLine(kicker, detail)}</AppText> : null}
           {note ? (
             <AppText role="meta" color={colors.sage}>
               {note}
@@ -66,13 +63,12 @@ function RecipeCardContent({ variant, title, kicker, detail, note, badge, conten
   if (variant === 'browse') {
     return (
       <View {...layout.props} style={[styles.browse, layout.style]}>
-        <RecipePhotoView photo={photo} title={title} variant="thumbnail" showCredit={false} />
+        <RecipePhotoView photo={shown} title={title} variant="thumbnail" showCredit={false} />
         <View style={styles.browseCopy}>
           <AppText role="compactTitle" contentLanguage={contentLanguage}>{title}</AppText>
-          {kicker ? <AppText role="meta" color={colors.muted}>{kicker}</AppText> : null}
-          {detail ? <AppText role="meta" color={colors.muted}>{detail}</AppText> : null}
+          {metaLine(kicker, detail) ? <AppText role="meta" color={colors.muted}>{metaLine(kicker, detail)}</AppText> : null}
           {note ? <AppText role="meta" color={colors.sage}>{note}</AppText> : null}
-          {photo ? <PhotoCredit name={photo.attribution} /> : null}
+          {shown ? <PhotoCredit name={shown.attribution} /> : null}
         </View>
       </View>
     );
@@ -80,15 +76,10 @@ function RecipeCardContent({ variant, title, kicker, detail, note, badge, conten
 
   return (
     <View {...layout.props} style={[styles.compact, layout.style]}>
-      {photo ? <RecipePhotoView photo={photo} title={title} /> : null}
+      {shown ? <RecipePhotoView photo={shown} title={title} /> : null}
       <View style={styles.copy}>
         <AppText role="compactTitle" contentLanguage={contentLanguage}>{title}</AppText>
-        {kicker ? (
-          <AppText role="meta" color={colors.muted}>
-            {kicker}
-          </AppText>
-        ) : null}
-        {detail ? <AppText role="meta" color={colors.muted}>{detail}</AppText> : null}
+        {metaLine(kicker, detail) ? <AppText role="meta" color={colors.muted}>{metaLine(kicker, detail)}</AppText> : null}
         {note ? (
           <AppText role="meta" color={colors.sage}>
             {note}
@@ -99,9 +90,13 @@ function RecipeCardContent({ variant, title, kicker, detail, note, badge, conten
   );
 }
 
+function metaLine(kicker: string | undefined, detail: string): string {
+  return [kicker, detail].filter((part) => part && part.length > 0).join(' · ');
+}
+
 function PhotoCredit({ name }: { name: string }) {
   const { t } = useTranslation();
-  return <AppText role="eyebrow" color={colors.muted}>{t('recipe.photoCredit', { name })}</AppText>;
+  return <AppText role="meta" color={colors.muted}>{t('recipe.photoCredit', { name })}</AppText>;
 }
 
 const styles = StyleSheet.create({

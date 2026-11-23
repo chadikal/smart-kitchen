@@ -433,7 +433,7 @@ function recipe(
       },
       { ingredientSlug, position: 2, amount: 'TO_TASTE', optional: true },
     ],
-    steps: [{ position: 1, instructions: { EN: 'Stir.', AR: 'حرّك.' } }],
+    steps: [{ position: 1, instructions: { EN: 'Stir.', AR: 'تحريك.' } }],
   };
 }
 
